@@ -2,7 +2,6 @@
 
 import os
 import numpy as np
-import matplotlib.image as mpimg
 import re
 import PIL
 
