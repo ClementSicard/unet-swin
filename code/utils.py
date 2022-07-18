@@ -7,7 +7,12 @@ import matplotlib.pyplot as plt
 def load_all_from_path(path: str):
     # loads all HxW .pngs contained in path as a 4D np.array of shape (n_images, H, W, 3)
     # images are loaded as floats with values in the interval [0., 1.]
-    return np.stack([np.array(Image.open(f)) for f in sorted(glob(path + "/*.png"))]).astype(np.float32) / 255.0
+    return (
+        np.stack(
+            [np.array(Image.open(f)) for f in sorted(glob(path + "/*.png"))]
+        ).astype(np.float32)
+        / 255.0
+    )
 
 
 def show_first_n(imgs, masks, n=5):
