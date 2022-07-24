@@ -5,8 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
-.DS_Store
 
+# Annoying macOS and VS Code files
+.DS_Store
+.vscode/
 
 # Distribution / packaging
 .Python
