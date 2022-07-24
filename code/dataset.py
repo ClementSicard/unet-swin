@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import DataLoader
 from utils import *
 
 
@@ -34,3 +35,10 @@ class ImageDataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return self.n_samples
+
+
+def get_dataloader(
+    path, device, use_patches=True, batch_size=128, shuffle=True, resize_to=(400, 400)
+):
+    dataset = ImageDataset(path, device, use_patches, resize_to)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
