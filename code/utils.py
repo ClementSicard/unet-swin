@@ -6,6 +6,7 @@ from consts import *
 import re
 import os
 import torch
+from tqdm.notebook import tqdm
 
 
 def load_all_from_path(path: str):
@@ -13,7 +14,10 @@ def load_all_from_path(path: str):
     # images are loaded as floats with values in the interval [0., 1.]
     return (
         np.stack(
-            [np.array(Image.open(f)) for f in sorted(glob(path + "/*.png"))]
+            [
+                np.array(Image.open(f))
+                for f in tqdm(sorted(glob(path + "/*.png")), desc="Loading images")
+            ]
         ).astype(np.float32)
         / 255.0
     )
@@ -108,6 +112,8 @@ def np_to_tensor(x, device):
     # allocates tensors from np.arrays
     if device == "cpu":
         return torch.from_numpy(x).cpu()
+    elif device == "mps":
+        return torch.from_numpy(x).contiguous().to(torch.device("mps"))
     else:
         return (
             torch.from_numpy(x)
@@ -115,3 +121,12 @@ def np_to_tensor(x, device):
             .pin_memory()
             .to(device=device, non_blocking=True)
         )
+
+
+def get_best_available_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
