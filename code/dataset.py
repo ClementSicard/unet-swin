@@ -1,44 +1,108 @@
+import torchvision.transforms.functional as TF
+from torchvision import transforms
+from consts import *
 import torch
-from torch.utils.data import DataLoader
+import os
 from utils import *
 
 
 class ImageDataset(torch.utils.data.Dataset):
-    def __init__(self, path, device, use_patches=True, resize_to=(400, 400)):
+    def __init__(
+        self,
+        path,
+        device,
+        use_patches=True,
+        augment=True,
+        resize_to=(400, 400),
+        verbose=False,
+    ):
         self.path = path
         self.device = device
         self.use_patches = use_patches
         self.resize_to = resize_to
         self.x, self.y, self.n_samples = None, None, None
+        self.augment = augment
         self._load_data()
+
+        self.N_TRANSFORMS = 6
+
+    def __repr__(self) -> str:
+        return super().__repr__()
 
     def _load_data(self):  # not very scalable, but good enough for now
         self.x = load_all_from_path(os.path.join(self.path, "images"))[:, :, :, :3]
         self.y = load_all_from_path(os.path.join(self.path, "groundtruth"))
+
         if self.use_patches:  # split each image into patches
             self.x, self.y = image_to_patches(self.x, self.y)
+
         self.x = np.moveaxis(
             self.x, -1, 1
         )  # pytorch works with CHW format instead of HWC
         self.n_samples = len(self.x)
 
-    def _preprocess(self, x, y):
-        # to keep things simple we will not apply transformations to each sample,
-        # but it would be a very good idea to look into preprocessing
-        return x, y
+    def transform(self, image, mask, index):
+        """
+        Creates a transform based on the modulo index of the image.
 
-    def __getitem__(self, item):
-        return self._preprocess(
-            np_to_tensor(self.x[item], self.device),
-            np_to_tensor(self.y[[item]], self.device),
+        0. No transform
+        1. Horizontal flip
+        2. Vertical flip
+        3. 90 degree rotation
+        4. -90 degree rotation
+        5. Random crop
+        """
+        mod = index % self.N_TRANSFORMS
+
+        print(f"Index: {index}, mod: {mod}")
+
+        if mod == 0:
+            return image, mask
+
+        elif mod == 1:
+            return TF.hflip(image), TF.hflip(mask)
+
+        elif mod == 2:
+            return TF.vflip(image), TF.vflip(mask)
+
+        elif mod == 3:
+            return TF.rotate(image, angle=-90), TF.rotate(mask, angle=-90)
+
+        elif mod == 4:
+            return TF.rotate(image, angle=90), TF.rotate(mask, angle=90)
+
+        elif mod == 5:
+            resize_size = (
+                (PATCH_SIZE, PATCH_SIZE) if self.use_patches else self.resize_to
+            )
+
+            i, j, h, w = transforms.RandomResizedCrop.get_params(
+                img=image,
+                scale=(0.7, 0.9),
+                ratio=(0.9, 1.1),
+            )
+            t_image = TF.resize(TF.crop(image, i, j, h, w), resize_size)
+            t_mask = TF.resize(TF.crop(mask, i, j, h, w), resize_size)
+
+            return t_image, t_mask
+
+    def __getitem__(self, index):
+        if self.augment:
+            image, mask = (
+                self.x[index // self.N_TRANSFORMS],
+                self.y[[index // self.N_TRANSFORMS]],
+            )
+        else:
+            image, mask = self.x[index], self.y[[index]]
+
+        image_tensor = np_to_tensor(image, self.device)
+        mask_tensor = np_to_tensor(mask, self.device)
+
+        return (
+            self.transform(image_tensor, mask_tensor, index=index)
+            if self.augment
+            else (image_tensor, mask_tensor)
         )
 
     def __len__(self):
-        return self.n_samples
-
-
-def get_dataloader(
-    path, device, use_patches=True, batch_size=128, shuffle=True, resize_to=(400, 400)
-):
-    dataset = ImageDataset(path, device, use_patches, resize_to)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
+        return self.n_samples * self.N_TRANSFORMS if self.augment else self.n_samples
