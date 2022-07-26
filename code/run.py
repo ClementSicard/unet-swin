@@ -2,6 +2,7 @@ from utils import *
 import argparse
 import models.baselines.baseline_svm_classifier as svc
 import models.baselines.baseline_patch_cnn as patch_cnn
+import models.baselines.baseline_vanilla_unet as vanilla_unet
 
 
 if __name__ == "__main__":
@@ -58,8 +59,13 @@ if __name__ == "__main__":
         )
 
     elif args.model == "baseline-unet":
-        print("Running baseline SVC...")
-        raise NotImplementedError("Not implemented yet")
+        print("Running baseline Vanilla-UNet...")
+        vanilla_unet.run(
+            train_path=args.train_dir,
+            val_path=args.val_dir,
+            test_path=args.test_dir,
+            n_epochs=args.n_epochs,
+        )
 
     else:
         raise NotImplementedError("Not implemented yet")
