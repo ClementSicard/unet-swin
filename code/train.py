@@ -1,3 +1,4 @@
+from datetime import datetime
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -41,6 +42,7 @@ def train(
     metric_fns,
     optimizer,
     n_epochs,
+    model_name,
     interactive=False,
 ):
     # training loop
@@ -48,6 +50,8 @@ def train(
     writer = SummaryWriter(logdir)  # tensorboard writer (can also log images)
 
     history = {}  # collects metrics at the end of each epoch
+
+    best_acc = 0.0
 
     for epoch in range(n_epochs):  # loop over the dataset multiple times
 
@@ -89,6 +93,7 @@ def train(
 
         # summarize metrics, log to tensorboard and display
         history[epoch] = {k: sum(v) / len(v) for k, v in metrics.items()}
+
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
         print(
@@ -105,6 +110,27 @@ def train(
                 y.detach().cpu().numpy(),
                 y_hat.detach().cpu().numpy(),
             )
+        # TODO: Which between acc and val_acc ?
+        epoch_acc = history[epoch]["acc"]
+
+        if epoch_acc > best_acc:
+            t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(
+                f"\t[{t}] New best batch accuracy: {epoch_acc:.4f}\tPrevious best batch accuracy: {best_acc:.4f}"
+            )
+            print(f"\t[{t}] Saving model and model parameters")
+            best_acc = epoch_acc
+            os.makedirs(f"./models/{model_name}/states", exist_ok=True)
+            torch.save(
+                model,
+                f"./models/{model_name}/{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
+            )
+            torch.save(
+                model.state_dict(),
+                f"./models/{model_name}/states/state_{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
+            )
+            t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print(f"\t[{t}] Model saved!")
 
     print("Finished Training")
     # plot loss curves
@@ -113,6 +139,8 @@ def train(
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()
-    plt.savefig("./loss_curve.png")
+    now = datetime.now()
+    t = now.strftime("%Y-%m-%d_%H:%M:%S")
+    plt.savefig(f"./code/models/baselines/plots/loss_{model_name}_{t}.png")
     if interactive:
         plt.show()
