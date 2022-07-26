@@ -1,22 +1,41 @@
 # Road Segmentation Project - Computational Intelligence Lab (2022)
 
 - [Road Segmentation Project - Computational Intelligence Lab (2022)](#road-segmentation-project---computational-intelligence-lab-2022)
-  - [Set up l'environnement](#set-up-lenvironnement)
+  - [Set up the environnement](#set-up-the-environnement)
+  - [Run the baselines](#run-the-baselines)
   - [Load le dataset augmenté](#load-le-dataset-augmenté)
   - [Sources](#sources)
   - [Dataset](#dataset)
     - [Augmenter le dataset](#augmenter-le-dataset)
   - [Liens utiles](#liens-utiles)
 
-## Set up l'environnement
+## Set up the environnement
 
-Installer `conda`, puis:
+Install `conda`, then:
 
 ```bash
 conda create -n cil python=3.8
 conda activate cil
 pip install -r requirements.txt
 pre-commit install
+```
+
+## Run the baselines
+
+From the **root of this folder**:
+
+```bash
+python code/run.py "name of the baseline" \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+  --n_epochs 20
+```
+
+with the names in
+
+```python
+{"baseline-svc", "baseline-unet", "baseline-patch-cnn"}
 ```
 
 ## Load le dataset augmenté
