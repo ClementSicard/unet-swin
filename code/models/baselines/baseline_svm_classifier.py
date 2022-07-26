@@ -44,7 +44,7 @@ def run(train_path: str, val_path: str, test_path: str):
     )
     print(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
-    t = now.strftime("%Y-%m-%d_%H-%M-%S")
+    t = now.strftime("%Y-%m-%d_%H:%M:%S")
     os.makedirs("submissions", exist_ok=True)
     create_submission(
         test_pred,

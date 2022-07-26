@@ -128,6 +128,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=
         metric_fns,
         optimizer,
         n_epochs,
+        model_name="baseline_vanilla_unet",
     )
 
     print("Training done!")
@@ -161,7 +162,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
     print(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
-    t = now.strftime("%Y-%m-%d_%H-%M-%S")
+    t = now.strftime("%Y-%m-%d_%H:%M:%S")
     os.makedirs("submissions", exist_ok=True)
     create_submission(
         test_pred,
