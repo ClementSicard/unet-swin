@@ -72,7 +72,7 @@ python code/run.py baseline-unet \
   --test-dir "data/test" \
   --val-dir "data/validation" \
   --n_epochs 35 \
-  --batch_size 5 # Might be modified when ran on Euler
+  --batch_size 4 # Might be modified when ran on Euler
 ```
 
 ## Load le dataset augmenté
