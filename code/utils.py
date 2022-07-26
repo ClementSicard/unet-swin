@@ -6,7 +6,7 @@ from consts import *
 import re
 import os
 import torch
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 
 def load_all_from_path(path: str):
@@ -76,6 +76,11 @@ def show_patched_image(patches, labels, h_patches=25, w_patches=25):
         )
         axs[i // w_patches, i % w_patches].set_axis_off()
     plt.show()
+
+
+def accuracy_fn(y_hat, y):
+    # computes classification accuracy
+    return (y_hat.round() == y.round()).float().mean()
 
 
 def create_submission(labels, test_filenames, submission_filename):

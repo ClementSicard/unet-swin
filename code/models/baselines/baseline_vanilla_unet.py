@@ -1,9 +1,15 @@
+from torch import nn
 import torch
-import torch.nn as nn
 import sys
+import numpy as np
+import cv2
 
 sys.path.append("..")
-from consts import *
+from ..losses.dice_loss import BinaryDiceLoss
+from utils import *
+from dataset import ImageDataset
+from train import train
+from datetime import datetime
 
 
 class Block(nn.Module):
@@ -82,3 +88,73 @@ def patch_accuracy_fn(y_hat, y):
         > CUTOFF
     )
     return (patches == patches_hat).float().mean()
+
+
+def run(train_path: str, val_path: str, test_path: str, n_epochs=35):
+    print("Training Patch-CNN Baseline...")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # reshape the image to simplify the handling of skip connections and maxpooling
+    train_dataset = ImageDataset(
+        train_path, device, use_patches=False, resize_to=(384, 384)
+    )
+    val_dataset = ImageDataset(
+        val_path, device, use_patches=False, resize_to=(384, 384)
+    )
+    train_dataloader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=4, shuffle=True
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=4, shuffle=True
+    )
+    model = UNet().to(device)
+    loss_fn = nn.BCELoss()
+    metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
+    optimizer = torch.optim.Adam(model.parameters())
+    n_epochs = n_epochs
+    train(
+        train_dataloader,
+        val_dataloader,
+        model,
+        loss_fn,
+        metric_fns,
+        optimizer,
+        n_epochs,
+    )
+
+    print("Training done!")
+
+    print("Predicting on test set...")
+    # predict on test set
+    test_path = os.path.join(test_path, "images")
+    test_filenames = glob(test_path + "/*.png")
+    test_images = load_all_from_path(test_path)
+    batch_size = test_images.shape[0]
+    size = test_images.shape[1:3]
+    # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
+    print("Resizing test images...")
+    test_images = np.stack(
+        [cv2.resize(img, dsize=(384, 384)) for img in test_images], 0
+    )
+    test_images = test_images[:, :, :, :3]
+    test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
+    print("Making predictions...")
+    test_pred = [model(t).detach().cpu().numpy() for t in test_images.unsqueeze(1)]
+    test_pred = np.concatenate(test_pred, 0)
+    test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
+    test_pred = np.stack(
+        [cv2.resize(img, dsize=size) for img in test_pred], 0
+    )  # resize to original shape
+    # now compute labels
+    test_pred = test_pred.reshape(
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+    )
+    test_pred = np.moveaxis(test_pred, 2, 3)
+    test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
+    print(f"Test predictions shape: {test_pred.shape}")
+    now = datetime.now()
+    t = now.strftime("%Y-%m-%d_%H-%M-%S")
+    create_submission(
+        test_pred, test_filenames, submission_filename=f"unet_submission_{t}.csv"
+    )
+    print(f"Created submission!")

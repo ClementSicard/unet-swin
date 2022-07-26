@@ -4,9 +4,11 @@ import sys
 import numpy as np
 
 sys.path.append("..")
+from ..losses.dice_loss import BinaryDiceLoss
 from utils import *
 from dataset import ImageDataset
 from train import train
+from datetime import datetime
 
 
 class PatchCNN(nn.Module):
@@ -39,12 +41,7 @@ class PatchCNN(nn.Module):
         return self.net(x)
 
 
-def accuracy_fn(y_hat, y):
-    # computes classification accuracy
-    return (y_hat.round() == y.round()).float().mean()
-
-
-def run(train_path: str, val_path: str, test_path: str):
+def run(train_path: str, val_path: str, test_path: str, n_epochs=20):
     print("Training Patch-CNN Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -59,9 +56,9 @@ def run(train_path: str, val_path: str, test_path: str):
     )
     model = PatchCNN().to(device)
     loss_fn = nn.BCELoss()
+    # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn}
     optimizer = torch.optim.Adam(model.parameters())
-    n_epochs = 20
 
     train(
         train_dataloader,
@@ -73,10 +70,15 @@ def run(train_path: str, val_path: str, test_path: str):
         n_epochs,
     )
 
+    print("Training done!")
+
+    print("Predicting on test set...")
     # predict on test set
+    test_path = os.path.join(test_path, "images")
     test_filenames = sorted(glob(test_path + "/*.png"))
     test_images = load_all_from_path(test_path)
     test_images = test_images[:, :, :, :3]
+    print(f"{test_images.shape[0]} were loaded")
     test_patches = np.moveaxis(image_to_patches(test_images), -1, 1)  # HWC to CHW
     test_patches = np.reshape(
         test_patches, (25, -1, 3, PATCH_SIZE, PATCH_SIZE)
@@ -93,6 +95,10 @@ def run(train_path: str, val_path: str, test_path: str):
             test_images.shape[1] // PATCH_SIZE,
         )
     )
+    print(f"Test predictions shape: {test_pred.shape}")
+    now = datetime.now()
+    t = now.strftime("%Y-%m-%d_%H-%M-%S")
     create_submission(
-        test_pred, test_filenames, submission_filename="cnn_submission.csv"
+        test_pred, test_filenames, submission_filename=f"cnn_submission_{t}.csv"
     )
+    print(f"Created submission!")

@@ -30,6 +30,12 @@ if __name__ == "__main__":
         required=True,
         help="Path to the test directory",
     )
+    parser.add_argument(
+        "--n_epochs",
+        type=int,
+        default=20,
+        help="Number of epochs to train on",
+    )
 
     args = parser.parse_args()
     print(vars(args))
@@ -48,6 +54,7 @@ if __name__ == "__main__":
             train_path=args.train_dir,
             val_path=args.val_dir,
             test_path=args.test_dir,
+            n_epochs=args.n_epochs,
         )
 
     elif args.model == "baseline-unet":
