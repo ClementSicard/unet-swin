@@ -14,6 +14,7 @@ def run():
     # Load data
     print("1. Loading data...")
     train_images, train_masks, val_images, val_masks = load_data(train_path, val_path)
+
     print(f"\tTraining images: {train_images.shape[0]}")
     print(f"\tTraining masks: {train_masks.shape[0]}")
     print(f"\tValidation images: {val_images.shape[0]}")

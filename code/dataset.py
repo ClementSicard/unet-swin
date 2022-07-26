@@ -22,6 +22,7 @@ class ImageDataset(torch.utils.data.Dataset):
         self.resize_to = resize_to
         self.x, self.y, self.n_samples = None, None, None
         self.augment = augment
+        self.verbose = verbose
         self._load_data()
 
         self.N_TRANSFORMS = 6
@@ -52,24 +53,38 @@ class ImageDataset(torch.utils.data.Dataset):
         4. -90 degree rotation
         5. Random crop
         """
-        mod = index % self.N_TRANSFORMS
 
-        print(f"Index: {index}, mod: {mod}")
+        mod = index % self.N_TRANSFORMS
+        if self.verbose:
+            print(f"Index: {index}, mod: {mod}")
+            desc = f"""
+        Type of image: {type(image)}
+        Type of mask: {type(mask)}
+        Shape of image: {image.shape}
+        Shape of mask: {mask.shape}
+            """
+            print(desc)
 
         if mod == 0:
             return image, mask
 
+        # Horiztonal flip
         elif mod == 1:
-            return TF.hflip(image), TF.hflip(mask)
+            t_image = TF.hflip(image)
+            t_mask = TF.hflip(mask) if not self.use_patches else mask
 
+        # Vertical flip
         elif mod == 2:
-            return TF.vflip(image), TF.vflip(mask)
+            t_image = TF.vflip(image)
+            t_mask = TF.vflip(mask) if not self.use_patches else mask
 
         elif mod == 3:
-            return TF.rotate(image, angle=-90), TF.rotate(mask, angle=-90)
+            t_image = TF.rotate(image, angle=-90)
+            t_mask = TF.rotate(mask, angle=-90) if not self.use_patches else mask
 
         elif mod == 4:
-            return TF.rotate(image, angle=90), TF.rotate(mask, angle=90)
+            t_image = (TF.rotate(image, angle=90),)
+            t_mask = TF.rotate(mask, angle=90) if not self.use_patches else mask
 
         elif mod == 5:
             resize_size = (
@@ -82,8 +97,15 @@ class ImageDataset(torch.utils.data.Dataset):
                 ratio=(0.9, 1.1),
             )
             t_image = TF.resize(TF.crop(image, i, j, h, w), resize_size)
-            t_mask = TF.resize(TF.crop(mask, i, j, h, w), resize_size)
+            t_mask = (
+                TF.resize(TF.crop(mask, i, j, h, w), resize_size)
+                if not self.use_patches
+                else mask
+            )
 
+        if self.use_patches:
+            return t_image, t_mask[0]
+        else:
             return t_image, t_mask
 
     def __getitem__(self, index):
