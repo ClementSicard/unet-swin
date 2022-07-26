@@ -75,9 +75,11 @@ def train(
             metrics["loss"].append(loss.item())
             for k, fn in metric_fns.items():
                 metrics[k].append(fn(y_hat, y).item())
-            pbar.set_postfix(
-                {k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0}
-            )
+            metrics_dict = {
+                k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
+            }
+            metrics_dict["max_sample_acc"] = max(metrics["acc"])
+            pbar.set_postfix(metrics_dict)
 
         # validation
         model.eval()
@@ -118,7 +120,6 @@ def train(
             print(
                 f"\t[{t}] New best batch accuracy: {epoch_acc:.4f}\tPrevious best batch accuracy: {best_acc:.4f}"
             )
-            print(f"\t[{t}] Saving model and model parameters")
             best_acc = epoch_acc
             os.makedirs(f"./models/{model_name}/states", exist_ok=True)
             torch.save(
@@ -130,7 +131,6 @@ def train(
                 f"./models/{model_name}/states/state_{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
             )
             t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(f"\t[{t}] Model saved!")
 
     print("Finished Training")
     # plot loss curves
