@@ -98,7 +98,10 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     print(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
     t = now.strftime("%Y-%m-%d_%H-%M-%S")
+    os.makedirs("submissions", exist_ok=True)
     create_submission(
-        test_pred, test_filenames, submission_filename=f"cnn_submission_{t}.csv"
+        test_pred,
+        test_filenames,
+        submission_filename=f"./submissions/cnn_submission_{t}.csv",
     )
     print(f"Created submission!")
