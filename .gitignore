@@ -40,6 +40,12 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Tensorboard events
+events.out.tfevents.*
+
+# Kaggle submissions
+*.csv
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
