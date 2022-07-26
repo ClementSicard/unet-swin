@@ -107,7 +107,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=
         device,
         use_patches=False,
         resize_to=(384, 384),
-        augment=False,
+        augment=True,
     )
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
