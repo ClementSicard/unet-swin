@@ -130,7 +130,6 @@ def train(
                 model.state_dict(),
                 f"./models/{model_name}/states/state_{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
             )
-            t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     print("Finished Training")
     # plot loss curves
