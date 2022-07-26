@@ -3,6 +3,10 @@
 - [Road Segmentation Project - Computational Intelligence Lab (2022)](#road-segmentation-project---computational-intelligence-lab-2022)
   - [Set up the environnement](#set-up-the-environnement)
   - [Run the baselines](#run-the-baselines)
+    - [Our runs to obtain the scores in the paper](#our-runs-to-obtain-the-scores-in-the-paper)
+      - [Support Vector Classifier baseline (`baseline-svc`)](#support-vector-classifier-baseline-baseline-svc)
+      - [Patch-CNN baseline (`baseline-patch-cnn`)](#patch-cnn-baseline-baseline-patch-cnn)
+      - [Vanilla-UNet baseline (`baseline-unet`)](#vanilla-unet-baseline-baseline-unet)
   - [Load le dataset augmenté](#load-le-dataset-augmenté)
   - [Sources](#sources)
   - [Dataset](#dataset)
@@ -36,6 +40,39 @@ with the names in
 
 ```python
 {"baseline-svc", "baseline-unet", "baseline-patch-cnn"}
+```
+
+### Our runs to obtain the scores in the paper
+
+#### Support Vector Classifier baseline (`baseline-svc`)
+
+```bash
+python code/run.py baseline-svc \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+```
+
+#### Patch-CNN baseline (`baseline-patch-cnn`)
+
+```bash
+python code/run.py baseline-patch-cnn \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+  --n_epochs 20 \
+  --batch_size 128
+```
+
+#### Vanilla-UNet baseline (`baseline-unet`)
+
+```bash
+python code/run.py baseline-unet \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+  --n_epochs 35 \
+  --batch_size 5 # Might be modified when ran on Euler
 ```
 
 ## Load le dataset augmenté
