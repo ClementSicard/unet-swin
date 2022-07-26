@@ -44,7 +44,7 @@ with the names in
 
 ### Our runs to obtain the scores in the paper
 
-#### Support Vector Classifier baseline (`baseline-svc`)
+#### Support Vector Classifier baseline ([`baseline-svc`](code/models/baselines/baseline_svm_classifier.py))
 
 ```bash
 python code/run.py baseline-svc \
@@ -53,7 +53,7 @@ python code/run.py baseline-svc \
   --val-dir "data/validation" \
 ```
 
-#### Patch-CNN baseline (`baseline-patch-cnn`)
+#### Patch-CNN baseline ([`baseline-patch-cnn`](code/models/baselines/baseline_patch_cnn.py))
 
 ```bash
 python code/run.py baseline-patch-cnn \
@@ -64,7 +64,7 @@ python code/run.py baseline-patch-cnn \
   --batch_size 128
 ```
 
-#### Vanilla-UNet baseline (`baseline-unet`)
+#### Vanilla-UNet baseline ([`baseline-unet`](code/models/baselines/baseline_vanilla_unet.py))
 
 ```bash
 python code/run.py baseline-unet \
