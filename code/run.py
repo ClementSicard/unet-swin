@@ -37,6 +37,12 @@ if __name__ == "__main__":
         default=20,
         help="Number of epochs to train on",
     )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Number of epochs to train on",
+    )
 
     args = parser.parse_args()
     print(vars(args))
@@ -56,6 +62,7 @@ if __name__ == "__main__":
             val_path=args.val_dir,
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
+            batch_size=args.batch_size,
         )
 
     elif args.model == "baseline-unet":
@@ -65,6 +72,7 @@ if __name__ == "__main__":
             val_path=args.val_dir,
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
+            batch_size=args.batch_size,
         )
 
     else:

@@ -41,7 +41,7 @@ class PatchCNN(nn.Module):
         return self.net(x)
 
 
-def run(train_path: str, val_path: str, test_path: str, n_epochs=20):
+def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=128):
     print("Training Patch-CNN Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,10 +49,10 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20):
     train_dataset = ImageDataset(train_path, device, augment=False)
     val_dataset = ImageDataset(val_path, device, augment=False)
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=128, shuffle=True
+        train_dataset, batch_size=batch_size, shuffle=True
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=128, shuffle=True
+        val_dataset, batch_size=batch_size, shuffle=True
     )
     model = PatchCNN().to(device)
     loss_fn = nn.BCELoss()

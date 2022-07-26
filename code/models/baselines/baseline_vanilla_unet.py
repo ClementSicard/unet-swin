@@ -90,28 +90,36 @@ def patch_accuracy_fn(y_hat, y):
     return (patches == patches_hat).float().mean()
 
 
-def run(train_path: str, val_path: str, test_path: str, n_epochs=35):
+def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=4):
     print("Training Patch-CNN Baseline...")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # reshape the image to simplify the handling of skip connections and maxpooling
     train_dataset = ImageDataset(
-        train_path, device, use_patches=False, resize_to=(384, 384)
+        train_path,
+        device,
+        use_patches=False,
+        resize_to=(384, 384),
+        augment=False,
     )
     val_dataset = ImageDataset(
-        val_path, device, use_patches=False, resize_to=(384, 384)
+        val_path,
+        device,
+        use_patches=False,
+        resize_to=(384, 384),
+        augment=False,
     )
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=4, shuffle=True
+        train_dataset, batch_size=batch_size, shuffle=True
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=4, shuffle=True
+        val_dataset, batch_size=batch_size, shuffle=True
     )
     model = UNet().to(device)
     loss_fn = nn.BCELoss()
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     optimizer = torch.optim.Adam(model.parameters())
-    n_epochs = n_epochs
+
     train(
         train_dataloader,
         val_dataloader,
