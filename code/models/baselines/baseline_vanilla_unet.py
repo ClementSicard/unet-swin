@@ -91,7 +91,7 @@ def patch_accuracy_fn(y_hat, y):
 
 
 def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=4):
-    print("Training Patch-CNN Baseline...")
+    print("Training Vanilla-UNet Baseline...")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # reshape the image to simplify the handling of skip connections and maxpooling
