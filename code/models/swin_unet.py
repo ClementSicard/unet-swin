@@ -38,14 +38,14 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(train_path, device, augment=False).to(device)
-    val_dataset = ImageDataset(val_path, device, augment=False).to(device)
+    train_dataset = ImageDataset(train_path, device, augment=False)
+    val_dataset = ImageDataset(val_path, device, augment=False)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
-    ).to(device)
+    )
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset, batch_size=batch_size, shuffle=True
-    ).to(device)
+    )
     model = SwinUnet().to(device)
     loss_fn = torch.nn.BCELoss()
     # loss_fn = BinaryDiceLoss()
