@@ -23,7 +23,8 @@ class DecoderBlock(torch.nn.Module):
         self.conv2 = torch.nn.Conv2d(
             up_channels, up_channels, kernel_size=kernel_size)
         self.dropout = torch.nn.Dropout(dropout)
-        self.last_up = torch.nn.ConvTranspose2d(3, 3, kernel_size=2, stride=2)
+        self.last_up = torch.nn.ConvTranspose2d(
+            48, 24, kernel_size=2, stride=2)
         # self.last_conv = torch.nn.Conv2d
         # self.last_layer_up = torch.nn.Sequential(
         #     [
@@ -44,7 +45,7 @@ class DecoderBlock(torch.nn.Module):
             # when x is [batch, channels, 100, 100] to [batch, channels, 400, 400]
             x = self.last_up(x)
             # print("after last_later_up", x.shape, flush=True)
-            x = torch.cat([x, skip], dim=1)
+            # x = torch.cat([x, skip], dim=1)
             # we return [batch, 6, 400, 400]
             return x
 
@@ -72,8 +73,8 @@ class Decoder(torch.nn.Module):
                     dropout=0.0,
                 ).to(device)
             )
-        self.last_conv1 = torch.nn.Conv2d(6, 3, kernel_size=3, padding=1)
-        self.last_conv2 = torch.nn.Conv2d(3, 3, kernel_size=3, padding=1)
+        self.last_conv1 = torch.nn.Conv2d(24, 12, kernel_size=3, padding=1)
+        self.last_conv2 = torch.nn.Conv2d(12, 6, kernel_size=3, padding=1)
 
     def forward(self, x, skips):
         for block, skip in zip(self.blocks, skips):

@@ -13,7 +13,7 @@ import sys
 sys.path.append("..")
 
 
-INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 3)]
+INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
 
 
 class SwinUnet(torch.nn.Module):
@@ -27,7 +27,8 @@ class SwinUnet(torch.nn.Module):
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
             torch.nn.Sigmoid(),
         )
-        self.prev_conv = torch.nn.Conv2d(768, 768, kernel_size=3, padding=1, bias=False)
+        self.prev_conv = torch.nn.Conv2d(
+            768, 768, kernel_size=3, padding=1, bias=False)
         self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
@@ -59,8 +60,10 @@ def run(
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(train_path, device, use_patches=False, augment=True)
-    val_dataset = ImageDataset(val_path, device, use_patches=False, augment=True)
+    train_dataset = ImageDataset(
+        train_path, device, use_patches=False, augment=True)
+    val_dataset = ImageDataset(
+        val_path, device, use_patches=False, augment=True)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -76,7 +79,8 @@ def run(
     # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -119,10 +123,12 @@ def run(
 
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-    test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
+    test_pred = np.stack([img for img in test_pred],
+                         0)  # resize to original shape
     # Now compute labels
     test_pred = test_pred.reshape(
-        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
+         size[0] // PATCH_SIZE, PATCH_SIZE)
     )
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
