@@ -58,7 +58,6 @@ def train(
     history = {}  # collects metrics at the end of each epoch
 
     best_metric_fn_val = 0.0
-
     checkpoint_epoch = 0
 
     if checkpoint_path:
@@ -68,7 +67,7 @@ def train(
         best_metric_fn = checkpoint["best_metric_fn"]
         best_metric_fn_val = checkpoint["best_metric_fn_val"]
         checkpoint_epoch = checkpoint["epoch"]
-        append_to_log(
+        log(
             f"""
             Model loaded:
             - epoch: {checkpoint_epoch}
@@ -82,6 +81,7 @@ def train(
     ):  # loop over the dataset multiple times
 
         # Add real-time logs
+        log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
@@ -135,7 +135,7 @@ def train(
 
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
-        append_to_log(
+        log(
             " ".join(
                 [
                     "\t- " + str(k) + " = " + str(v) + "\n "
@@ -155,12 +155,16 @@ def train(
 
         # If a better value for the best metric is found, save the model
         if epoch_best_metric_fn_val > best_metric_fn_val:
-            t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            append_to_log(
-                f"\t[{t}] New best batch {best_metric_key}: {epoch_best_metric_fn_val:.4f}\tPrevious best batch {best_metric_key}: {best_metric_fn_val:.4f}"
+            log(
+                f"New best batch {best_metric_key}: {epoch_best_metric_fn_val:.4f}\tPrevious best batch {best_metric_key}: {best_metric_fn_val:.4f}"
             )
             best_metric_fn_val = epoch_best_metric_fn_val
             if save_state:
+                best_model_path = pjoin(
+                    "models",
+                    model_name,
+                    f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
+                )
                 os.makedirs(f"./models/{model_name}", exist_ok=True)
                 torch.save(
                     {
@@ -170,14 +174,10 @@ def train(
                         "best_metric_fn_val": best_metric_fn_val,
                         "best_metric_fn": best_metric_fn,
                     },
-                    pjoin(
-                        "models",
-                        model_name,
-                        f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
-                    ),
+                    best_model_path,
                 )
 
-    append_to_log("Finished Training")
+    log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
     plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
@@ -189,3 +189,7 @@ def train(
     plt.savefig(f"./code/models/baselines/plots/loss_{model_name}_{t}.png")
     if interactive:
         plt.show()
+
+    if save_state:
+        log(f"Path to best model: {best_model_path}")
+        return best_model_path

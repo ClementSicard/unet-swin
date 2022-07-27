@@ -32,18 +32,18 @@ class SwinUnet(torch.nn.Module):
         x = self.prev_conv(x)
         self.encoder.x_int.reverse()
         # for int in self.encoder.x_int[1::]:
-        #     append_to_log(int.shape)
+        #     log(int.shape)
         x = self.decoder(x, self.encoder.x_int[1::])
         # x = self.fully_connected(x.view(x.shape[0], -1))
         # x = torch.sigmoid(x)
         # x[x > 0.5] = 1
         # x[x <= 0.5] = 0
-        # append_to_log(x.shape, flush=True)
+        # log(x.shape, flush=True)
         return x
 
 
 def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=128):
-    append_to_log("Training Swin-Unet Baseline...")
+    log("Training Swin-Unet Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
@@ -78,25 +78,25 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         model_name="swin-unet",
     )
 
-    append_to_log("Training done!")
+    log("Training done!")
 
-    append_to_log("Predicting on test set...")
+    log("Predicting on test set...")
     # predict on test set
     test_path = os.path.join(test_path, "images")
     test_filenames = sorted(glob(test_path + "/*.png"))
     test_images = load_all_from_path(test_path)
     test_images = test_images[:, :, :, :3]
-    append_to_log(f"{test_images.shape[0]} were loaded")
+    log(f"{test_images.shape[0]} were loaded")
     test_images = np.moveaxis(test_images, -1, 1)  # HWC to CHW
 
-    append_to_log(test_images.shape)
+    log(test_images.shape)
     os.makedirs("preds/segmentations", exist_ok=True)
     with torch.no_grad():
         for i, test_image in enumerate(test_images):
             test_image = torch.from_numpy(test_image).unsqueeze(0).to(device)
             pred = model(test_image).cpu().numpy().squeeze(0).squeeze(0)
 
-            # append_to_log(pred)
+            # log(pred)
             # pred[np.where(pred > 0.5)] = 1
             # pred[np.where(pred <= 0.5)] = 0
             # pred = pred.round()
@@ -110,4 +110,4 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         "",
         *map(lambda x: f"preds/segmentations/{x}", os.listdir("preds/segmentations")),
     )
-    append_to_log(f"Created submission!")
+    log(f"Created submission!")

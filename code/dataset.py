@@ -49,7 +49,7 @@ class ImageDataset(torch.utils.data.Dataset):
             self.x, -1, 1
         )  # pytorch works with CHW format instead of HWC
         self.n_samples = len(self.x)
-        append_to_log(
+        log(
             f"Using {'AUGMENTED' if self.augment else 'REGULAR'} dataset {'WITH' if self.use_patches else 'WITHOUT'} patches, with {len(self)} samples in total"
         )
 
@@ -67,14 +67,14 @@ class ImageDataset(torch.utils.data.Dataset):
 
         mod = index % self.N_TRANSFORMS
         if self.verbose:
-            append_to_log(f"Index: {index}, mod: {mod}")
+            log(f"Index: {index}, mod: {mod}")
             desc = f"""
         Type of image: {type(image)}
         Type of mask: {type(mask)}
         Shape of image: {image.shape}
         Shape of mask: {mask.shape}
             """
-            append_to_log(desc)
+            log(desc)
 
         if mod == 0:
             return image, mask

@@ -49,7 +49,7 @@ def run(
     batch_size=128,
     checkpoint_path=None,
 ):
-    append_to_log("Training Patch-CNN Baseline...")
+    log("Training Patch-CNN Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
@@ -81,15 +81,15 @@ def run(
         model_name="baseline_patch_cnn",
     )
 
-    append_to_log("Training done!")
+    log("Training done!")
 
-    append_to_log("Predicting on test set...")
+    log("Predicting on test set...")
     # predict on test set
     test_path = os.path.join(test_path, "images")
     test_filenames = sorted(glob(test_path + "/*.png"))
     test_images = load_all_from_path(test_path)
     test_images = test_images[:, :, :, :3]
-    append_to_log(f"{test_images.shape[0]} were loaded")
+    log(f"{test_images.shape[0]} were loaded")
     test_patches = np.moveaxis(image_to_patches(test_images), -1, 1)  # HWC to CHW
     test_patches = np.reshape(
         test_patches, (25, -1, 3, PATCH_SIZE, PATCH_SIZE)
@@ -106,7 +106,7 @@ def run(
             test_images.shape[1] // PATCH_SIZE,
         )
     )
-    append_to_log(f"Test predictions shape: {test_pred.shape}")
+    log(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
     t = now.strftime("%Y-%m-%d_%H:%M:%S")
     os.makedirs("submissions", exist_ok=True)
@@ -115,4 +115,4 @@ def run(
         test_filenames,
         submission_filename=f"./submissions/baseline_cnn_submission_{t}.csv",
     )
-    append_to_log(f"Created submission!")
+    log(f"Created submission!")
