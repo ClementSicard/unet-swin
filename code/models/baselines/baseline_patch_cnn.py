@@ -45,9 +45,9 @@ def run(
     train_path: str,
     val_path: str,
     test_path: str,
-    n_epochs=20,
-    batch_size=128,
-    checkpoint_path=None,
+    n_epochs: int = 20,
+    batch_size: int = 128,
+    checkpoint_path: str = None,
 ):
     log("Training Patch-CNN Baseline...")
     device = (

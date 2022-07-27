@@ -98,6 +98,7 @@ def run(
     n_epochs=35,
     batch_size=4,
     checkpoint_path=None,
+    augment: bool = False,
 ):
     log("Training Vanilla-UNet Baseline...")
 
@@ -108,14 +109,14 @@ def run(
         device,
         use_patches=False,
         resize_to=(384, 384),
-        augment=True,
+        augment=augment,
     )
     val_dataset = ImageDataset(
         val_path,
         device,
         use_patches=False,
         resize_to=(384, 384),
-        augment=True,
+        augment=augment,
     )
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
