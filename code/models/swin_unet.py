@@ -1,3 +1,9 @@
+import numpy as np
+import os
+from datetime import datetime
+from utils import *
+from train import train
+from dataset import ImageDataset
 from PIL import Image
 import torch
 from .encoders.swin_small import swin_pretrained
@@ -6,12 +12,6 @@ import sys
 
 sys.path.append("..")
 
-from dataset import ImageDataset
-from train import train
-from utils import *
-from datetime import datetime
-import os
-import numpy as np
 
 INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 3)]
 
@@ -23,7 +23,12 @@ class SwinUnet(torch.nn.Module):
 
         self.encoder = swin_pretrained().to(device)
         self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
-        self.prev_conv = torch.nn.Conv2d(768, 768, kernel_size=3, padding=1, bias=False)
+        self.head = torch.nn.Sequential(
+            torch.nn.Conv2d(self.decoder.last_conv2.out_channels,
+                            1, 1), torch.nn.Sigmoid()
+        )
+        self.prev_conv = torch.nn.Conv2d(
+            768, 768, kernel_size=3, padding=1, bias=False)
         self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
@@ -39,7 +44,7 @@ class SwinUnet(torch.nn.Module):
         # x[x > 0.5] = 1
         # x[x <= 0.5] = 0
         # log(x.shape, flush=True)
-        return x
+        return self.head(x)
 
 
 def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=128):
@@ -47,8 +52,10 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(train_path, device, use_patches=False, augment=False)
-    val_dataset = ImageDataset(val_path, device, use_patches=False, augment=False)
+    train_dataset = ImageDataset(
+        train_path, device, use_patches=False, augment=False)
+    val_dataset = ImageDataset(
+        val_path, device, use_patches=False, augment=False)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -64,7 +71,8 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     train(
         train_dataloader=train_dataloader,
@@ -108,6 +116,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     masks_to_submission(
         "preds/_preds.csv",
         "",
-        *map(lambda x: f"preds/segmentations/{x}", os.listdir("preds/segmentations")),
+        *map(lambda x: f"preds/segmentations/{x}",
+             os.listdir("preds/segmentations")),
     )
     log(f"Created submission!")

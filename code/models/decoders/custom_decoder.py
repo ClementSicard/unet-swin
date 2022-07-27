@@ -20,7 +20,8 @@ class DecoderBlock(torch.nn.Module):
         self.conv1 = torch.nn.Conv2d(
             down_channels, up_channels, kernel_size=kernel_size, padding=2
         )
-        self.conv2 = torch.nn.Conv2d(up_channels, up_channels, kernel_size=kernel_size)
+        self.conv2 = torch.nn.Conv2d(
+            up_channels, up_channels, kernel_size=kernel_size)
         self.dropout = torch.nn.Dropout(dropout)
         self.last_up = torch.nn.ConvTranspose2d(3, 3, kernel_size=2, stride=2)
         # self.last_conv = torch.nn.Conv2d
@@ -72,7 +73,7 @@ class Decoder(torch.nn.Module):
                 ).to(device)
             )
         self.last_conv1 = torch.nn.Conv2d(6, 3, kernel_size=3, padding=1)
-        self.last_conv2 = torch.nn.Conv2d(3, 1, kernel_size=3, padding=1)
+        self.last_conv2 = torch.nn.Conv2d(3, 3, kernel_size=3, padding=1)
 
     def forward(self, x, skips):
         for block, skip in zip(self.blocks, skips):
