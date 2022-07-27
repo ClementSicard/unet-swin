@@ -99,7 +99,7 @@ def run(
     batch_size=4,
     checkpoint_path=None,
 ):
-    print("Training Vanilla-UNet Baseline...")
+    append_to_log("Training Vanilla-UNet Baseline...")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # reshape the image to simplify the handling of skip connections and maxpooling
@@ -142,9 +142,9 @@ def run(
         model_name="baseline_vanilla_unet",
     )
 
-    print("Training done!")
+    append_to_log("Training done!")
 
-    print("Predicting on test set...")
+    append_to_log("Predicting on test set...")
     # predict on test set
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
@@ -152,13 +152,13 @@ def run(
     batch_size = test_images.shape[0]
     size = test_images.shape[1:3]
     # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
-    print("Resizing test images...")
+    append_to_log("Resizing test images...")
     test_images = np.stack(
         [cv2.resize(img, dsize=(384, 384)) for img in test_images], 0
     )
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
-    print("Making predictions...")
+    append_to_log("Making predictions...")
     test_pred = [model(t).detach().cpu().numpy() for t in test_images.unsqueeze(1)]
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
@@ -171,7 +171,7 @@ def run(
     )
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
-    print(f"Test predictions shape: {test_pred.shape}")
+    append_to_log(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
     t = now.strftime("%Y-%m-%d_%H:%M:%S")
     os.makedirs("submissions", exist_ok=True)
@@ -180,4 +180,4 @@ def run(
         test_filenames,
         submission_filename=f"./submissions/baseline_unet_submission_{t}.csv",
     )
-    print(f"Created submission!")
+    append_to_log(f"Created submission!")

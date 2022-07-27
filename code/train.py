@@ -6,6 +6,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 from utils import *
+from subprocess import Popen
 
 pjoin = os.path.join
 
@@ -67,7 +68,7 @@ def train(
         best_metric_fn = checkpoint["best_metric_fn"]
         best_metric_fn_val = checkpoint["best_metric_fn_val"]
         checkpoint_epoch = checkpoint["epoch"]
-        print(
+        append_to_log(
             f"""
             Model loaded:
             - epoch: {checkpoint_epoch}
@@ -79,6 +80,8 @@ def train(
     for epoch in range(
         checkpoint_epoch, n_epochs
     ):  # loop over the dataset multiple times
+
+        # Add real-time logs
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
@@ -132,7 +135,7 @@ def train(
 
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
-        print(
+        append_to_log(
             " ".join(
                 [
                     "\t- " + str(k) + " = " + str(v) + "\n "
@@ -153,7 +156,7 @@ def train(
         # If a better value for the best metric is found, save the model
         if epoch_best_metric_fn_val > best_metric_fn_val:
             t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            print(
+            append_to_log(
                 f"\t[{t}] New best batch {best_metric_key}: {epoch_best_metric_fn_val:.4f}\tPrevious best batch {best_metric_key}: {best_metric_fn_val:.4f}"
             )
             best_metric_fn_val = epoch_best_metric_fn_val
@@ -174,7 +177,7 @@ def train(
                     ),
                 )
 
-    print("Finished Training")
+    append_to_log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
     plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")

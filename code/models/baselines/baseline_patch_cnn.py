@@ -49,7 +49,7 @@ def run(
     batch_size=128,
     checkpoint_path=None,
 ):
-    print("Training Patch-CNN Baseline...")
+    append_to_log("Training Patch-CNN Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
@@ -65,6 +65,7 @@ def run(
     loss_fn = nn.BCELoss()
     # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn}
+    best_metric_fn = {"acc": accuracy_fn}
     optimizer = torch.optim.Adam(model.parameters())
 
     train(
@@ -73,21 +74,22 @@ def run(
         model=model,
         loss_fn=loss_fn,
         metric_fns=metric_fns,
+        best_metric_fn=best_metric_fn,
         optimizer=optimizer,
         n_epochs=n_epochs,
         checkpoint_path=checkpoint_path,
         model_name="baseline_patch_cnn",
     )
 
-    print("Training done!")
+    append_to_log("Training done!")
 
-    print("Predicting on test set...")
+    append_to_log("Predicting on test set...")
     # predict on test set
     test_path = os.path.join(test_path, "images")
     test_filenames = sorted(glob(test_path + "/*.png"))
     test_images = load_all_from_path(test_path)
     test_images = test_images[:, :, :, :3]
-    print(f"{test_images.shape[0]} were loaded")
+    append_to_log(f"{test_images.shape[0]} were loaded")
     test_patches = np.moveaxis(image_to_patches(test_images), -1, 1)  # HWC to CHW
     test_patches = np.reshape(
         test_patches, (25, -1, 3, PATCH_SIZE, PATCH_SIZE)
@@ -104,7 +106,7 @@ def run(
             test_images.shape[1] // PATCH_SIZE,
         )
     )
-    print(f"Test predictions shape: {test_pred.shape}")
+    append_to_log(f"Test predictions shape: {test_pred.shape}")
     now = datetime.now()
     t = now.strftime("%Y-%m-%d_%H:%M:%S")
     os.makedirs("submissions", exist_ok=True)
@@ -113,4 +115,4 @@ def run(
         test_filenames,
         submission_filename=f"./submissions/baseline_cnn_submission_{t}.csv",
     )
-    print(f"Created submission!")
+    append_to_log(f"Created submission!")

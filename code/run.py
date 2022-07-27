@@ -9,7 +9,7 @@ try:
 except:
     from torchvision import __version__
 
-    print(f"Could not import swin_unet. Running on torchvision {__version__}")
+    append_to_log(f"Could not import swin_unet. Running on torchvision {__version__}")
 
 
 if __name__ == "__main__":
@@ -58,15 +58,15 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    print(vars(args))
+    append_to_log(vars(args))
 
     device = get_best_available_device()
-    print(f"PyTorch will use device: {device}")
+    append_to_log(f"PyTorch will use device: {device}")
     if device == "cuda":
-        print(f"GPU used: {torch.cuda.get_device_name(0)}")
+        append_to_log(f"GPU used: {torch.cuda.get_device_name(0)}")
 
     if args.model == "baseline-svc":
-        print("Running baseline SVC...")
+        append_to_log("Running baseline SVC...")
         svc.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         )
 
     elif args.model == "baseline-patch-cnn":
-        print("Running baseline Patch-CNN...")
+        append_to_log("Running baseline Patch-CNN...")
         patch_cnn.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         )
 
     elif args.model == "baseline-unet":
-        print("Running baseline Vanilla-UNet...")
+        append_to_log("Running baseline Vanilla-UNet...")
         vanilla_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -95,7 +95,7 @@ if __name__ == "__main__":
             checkpoint_path=args.checkpoint_path,
         )
     elif args.model == "swin-unet":
-        print("Running SWIN-UNet...")
+        append_to_log("Running SWIN-UNet...")
         swin_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,

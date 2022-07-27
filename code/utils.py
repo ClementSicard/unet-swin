@@ -7,6 +7,8 @@ import re
 import os
 import torch
 from tqdm import tqdm
+from datetime import datetime
+from subprocess import Popen
 
 
 def load_all_from_path(path: str):
@@ -64,6 +66,14 @@ def image_to_patches(images, masks=None):
     labels = np.mean(masks, (-1, -2, -3)) > CUTOFF  # compute labels
     labels = labels.reshape(-1).astype(np.float32)
     return patches, labels
+
+
+def append_to_log(message: str):
+    t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    to_write = f"[{t}]\t{message}\n"
+    print(to_write)
+    command = f'TAG=$(git rev-parse --short HEAD);echo "{to_write}" >> $TAG.log'
+    Popen(command, shell=True).wait()
 
 
 def show_patched_image(patches, labels, h_patches=25, w_patches=25):
