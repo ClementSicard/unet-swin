@@ -64,7 +64,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         val_dataset, batch_size=batch_size, shuffle=True
     )
     model = SwinUnet().to(device)
-    model.encoder.features.requires_grad_ = False
+    # model.encoder.features.requires_grad_ = False
     # param.requires_grad = False
     # model.encoder.weight.requires_grad = False
     # exit()
