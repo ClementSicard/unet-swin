@@ -51,6 +51,9 @@ def train(
     checkpoint_path=None,
     interactive=False,
 ):
+    """
+    Returns the path to the best model
+    """
     # training loop
     logdir = "./tensorboard/net"
     writer = SummaryWriter(logdir)  # tensorboard writer (can also log images)
