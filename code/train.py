@@ -6,6 +6,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 from utils import *
+pjoin = os.path.join
 
 
 def show_val_samples(x, y, y_hat, segmentation=False):
@@ -15,8 +16,10 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate(
+                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate(
+                [np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -124,22 +127,26 @@ def train(
             os.makedirs(f"./models/{model_name}/states", exist_ok=True)
             torch.save(
                 model,
-                f"./models/{model_name}/{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
+                # "test.pt"
+                pjoin("models", model_name,
+                      f"best_acc_{best_acc:4f}_epoch_{epoch}.pt"),
             )
             torch.save(
                 model.state_dict(),
-                f"./models/{model_name}/states/state_{t}_best_acc_{best_acc:4f}_epoch_{epoch}.pt",
+                pjoin("models", model_name, "states",
+                      f"best_acc_{best_acc:4f}_epoch_{epoch}.pt")
             )
 
     print("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"]
+             for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()
     now = datetime.now()
-    t = now.strftime("%Y-%m-%d_%H:%M:%S")
+    t = now.strftime("%Y-%m-%d_%H-%M-%S")
     plt.savefig(f"./code/models/baselines/plots/loss_{model_name}_{t}.png")
     if interactive:
         plt.show()

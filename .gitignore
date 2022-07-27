@@ -1,3 +1,8 @@
+# n'uploadouns pas les models dans le cloud
+models/
+preds/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

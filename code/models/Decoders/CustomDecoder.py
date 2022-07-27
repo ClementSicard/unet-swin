@@ -59,6 +59,7 @@ class DecoderBlock(torch.nn.Module):
 class Decoder(torch.nn.Module):
     def __init__(self, sizes) -> None:
         super().__init__()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.blocks = []
         for size in sizes:
             self.blocks.append(
@@ -69,7 +70,7 @@ class Decoder(torch.nn.Module):
                     stride_up=2,
                     kernel_size=3,
                     dropout=0.0,
-                )
+                ).to(device)
             )
         self.last_conv1 = torch.nn.Conv2d(6, 3, kernel_size=3, padding=1)
         self.last_conv2 = torch.nn.Conv2d(3, 1, kernel_size=3, padding=1)
