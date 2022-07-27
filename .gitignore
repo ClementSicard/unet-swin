@@ -1,5 +1,5 @@
 # n'uploadouns pas les models dans le cloud
-./models/
+checkpoints/
 preds/
 
 # Byte-compiled / optimized / DLL files
