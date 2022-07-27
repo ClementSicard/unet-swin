@@ -3,7 +3,7 @@ import argparse
 import models.baselines.baseline_svm_classifier as svc
 import models.baselines.baseline_patch_cnn as patch_cnn
 import models.baselines.baseline_vanilla_unet as vanilla_unet
-
+import models.swin_unet as swin_unet
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -11,7 +11,8 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn"],
+        choices=["baseline-svc", "baseline-unet",
+                 "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--train-dir",
@@ -74,6 +75,15 @@ if __name__ == "__main__":
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
         )
-
+    elif args.model == "swin-unet":
+        print("Running SWIN-UNet...")
+        swin_unet.run(
+            train_path=args.train_dir,
+            val_path=args.val_dir,
+            test_path=args.test_dir,
+            n_epochs=args.n_epochs,
+            batch_size=args.batch_size,
+            # model_type="swin-unet",
+        )
     else:
         raise NotImplementedError("Not implemented yet")
