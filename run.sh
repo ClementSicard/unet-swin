@@ -11,4 +11,5 @@ python code/run.py swin-unet \
     --test-dir "data/test" \
     --val-dir "data/validation" \
     --n_epochs 35 \
-    --batch_size 4
+    --batch_size 4 \
+    --no-augment

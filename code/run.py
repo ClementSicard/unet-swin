@@ -28,6 +28,11 @@ if __name__ == "__main__":
         help="Path to the training directory",
     )
     parser.add_argument(
+        "--no-augment",
+        action="store_false",
+        help="The dataset will not be augmented",
+    )
+    parser.add_argument(
         "--val-dir",
         type=str,
         required=True,
@@ -94,6 +99,7 @@ if __name__ == "__main__":
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
+            augment=args.no_augment,
         )
     elif args.model == "swin-unet":
         log("Running SWIN-UNet...")
