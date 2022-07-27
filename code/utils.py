@@ -73,7 +73,7 @@ def log(message: str, print_message=True):
         print(message)
     t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     to_write = f"[{t}]\t{message}\n"
-    command = f'TAG=$(git rev-parse --short HEAD);echo "{to_write}" >> $TAG.log'
+    command = f'TAG=$(git rev-parse --short HEAD);echo "{to_write}" >> logs/$TAG.log'
     Popen(command, shell=True).wait()
 
 
