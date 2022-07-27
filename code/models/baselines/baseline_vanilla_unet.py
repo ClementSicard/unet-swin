@@ -130,7 +130,7 @@ def run(
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     optimizer = torch.optim.Adam(model.parameters())
 
-    train(
+    best_weights_path = train(
         train_dataloader=train_dataloader,
         eval_dataloader=val_dataloader,
         model=model,
@@ -160,13 +160,20 @@ def run(
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
-    test_pred = [model(t).detach().cpu().numpy() for t in test_images.unsqueeze(1)]
+    # Load best model state
+    checkpoint = torch.load(best_weights_path)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    log(f"Loaded best model weights ({best_weights_path})")
+
+    test_pred = [
+        model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
+    ]
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
     test_pred = np.stack(
         [cv2.resize(img, dsize=size) for img in test_pred], 0
     )  # resize to original shape
-    # now compute labels
+    # Now compute labels
     test_pred = test_pred.reshape(
         (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
     )
