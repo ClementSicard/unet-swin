@@ -49,7 +49,9 @@ if __name__ == "__main__":
     print(vars(args))
 
     device = get_best_available_device()
-    print(f"PyTorch using device: {device}")
+    print(f"PyTorch will use device: {device}")
+    if device == "cuda":
+        print(f"GPU used: {torch.cuda.get_device_name(0)}")
 
     if args.model == "baseline-svc":
         print("Running baseline SVC...")
