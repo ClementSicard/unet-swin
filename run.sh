@@ -1,14 +1,9 @@
-module load gcc/6.3.0 python_gpu/3.8.5 eth_proxy
-python -m venv venv
-source venv/bin/activate
-module load gcc/6.3.0 python_gpu/3.8.5 eth_proxy
-pip3 install -r requirements.txt
-export PYTHONPATH=$PYTHONPATH:~/CI-Lab
-TAG=$(git rev-parse --short HEAD)
+source ~/.bashrc
+conda activate cil
 
 python code/run.py swin-unet \
     --train-dir "data/training" \
     --test-dir "data/test" \
     --val-dir "data/validation" \
     --n_epochs 35 \
-    --batch_size 4 
+    --batch_size 4
