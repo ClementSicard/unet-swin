@@ -6,6 +6,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import os
 from utils import *
+
 pjoin = os.path.join
 
 
@@ -16,10 +17,8 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate(
-                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate(
-                [np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -43,9 +42,12 @@ def train(
     model,
     loss_fn,
     metric_fns,
+    best_metric_fn,
     optimizer,
     n_epochs,
     model_name,
+    save_state=True,
+    checkpoint_path=None,
     interactive=False,
 ):
     # training loop
@@ -54,13 +56,36 @@ def train(
 
     history = {}  # collects metrics at the end of each epoch
 
-    best_acc = 0.0
+    best_metric_fn_val = 0.0
 
-    for epoch in range(n_epochs):  # loop over the dataset multiple times
+    checkpoint_epoch = 0
+
+    if checkpoint_path:
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        best_metric_fn = checkpoint["best_metric_fn"]
+        best_metric_fn_val = checkpoint["best_metric_fn_val"]
+        checkpoint_epoch = checkpoint["epoch"]
+        print(
+            f"""
+            Model loaded:
+            - epoch: {checkpoint_epoch}
+            - Best metric function: {list(best_metric_fn.keys())[0]}
+            - Current best metric function value: {best_metric_fn_val:.4f}
+        """
+        )
+
+    for epoch in range(
+        checkpoint_epoch, n_epochs
+    ):  # loop over the dataset multiple times
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
         for k, _ in metric_fns.items():
+            metrics[k] = []
+            metrics["val_" + k] = []
+        for k, _ in best_metric_fn.items():
             metrics[k] = []
             metrics["val_" + k] = []
 
@@ -78,10 +103,14 @@ def train(
             metrics["loss"].append(loss.item())
             for k, fn in metric_fns.items():
                 metrics[k].append(fn(y_hat, y).item())
+            for k, fn in best_metric_fn.items():
+                metrics[k].append(fn(y_hat, y).item())
             metrics_dict = {
                 k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
             }
-            metrics_dict["max_sample_acc"] = max(metrics["acc"])
+            metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
+                metrics[list(best_metric_fn.keys())[0]]
+            )
             pbar.set_postfix(metrics_dict)
 
         # validation
@@ -94,6 +123,8 @@ def train(
                 # log partial metrics
                 metrics["val_loss"].append(loss.item())
                 for k, fn in metric_fns.items():
+                    metrics["val_" + k].append(fn(y_hat, y).item())
+                for k, fn in best_metric_fn.items():
                     metrics["val_" + k].append(fn(y_hat, y).item())
 
         # summarize metrics, log to tensorboard and display
@@ -115,33 +146,38 @@ def train(
                 y.detach().cpu().numpy(),
                 y_hat.detach().cpu().numpy(),
             )
-        # TODO: Which between acc and val_acc ?
-        epoch_acc = history[epoch]["acc"]
 
-        if epoch_acc > best_acc:
+        best_metric_key = f"val_{list(best_metric_fn.keys())[0]}"
+        epoch_best_metric_fn_val = history[epoch][best_metric_key]
+
+        # If a better value for the best metric is found, save the model
+        if epoch_best_metric_fn_val > best_metric_fn_val:
             t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(
-                f"\t[{t}] New best batch accuracy: {epoch_acc:.4f}\tPrevious best batch accuracy: {best_acc:.4f}"
+                f"\t[{t}] New best batch {best_metric_key}: {epoch_best_metric_fn_val:.4f}\tPrevious best batch {best_metric_key}: {best_metric_fn_val:.4f}"
             )
-            best_acc = epoch_acc
-            os.makedirs(f"./models/{model_name}/states", exist_ok=True)
-            torch.save(
-                model,
-                # "test.pt"
-                pjoin("models", model_name,
-                      f"best_acc_{best_acc:4f}_epoch_{epoch}.pt"),
-            )
-            torch.save(
-                model.state_dict(),
-                pjoin("models", model_name, "states",
-                      f"best_acc_{best_acc:4f}_epoch_{epoch}.pt")
-            )
+            best_metric_fn_val = epoch_best_metric_fn_val
+            if save_state:
+                os.makedirs(f"./models/{model_name}", exist_ok=True)
+                torch.save(
+                    {
+                        "epoch": epoch,
+                        "model_state_dict": model.state_dict(),
+                        "optimizer_state_dict": optimizer.state_dict(),
+                        "best_metric_fn_val": best_metric_fn_val,
+                        "best_metric_fn": best_metric_fn,
+                    },
+                    pjoin(
+                        "models",
+                        model_name,
+                        f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
+                    ),
+                )
 
     print("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"]
-             for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()

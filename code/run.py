@@ -51,6 +51,12 @@ if __name__ == "__main__":
         help="Number of epochs to train on",
     )
 
+    parser.add_argument(
+        "--checkpoint_path",
+        type=str,
+        help="Path of a model checkpoint to load",
+    )
+
     args = parser.parse_args()
     print(vars(args))
 
@@ -75,6 +81,7 @@ if __name__ == "__main__":
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
+            checkpoint_path=args.checkpoint_path,
         )
 
     elif args.model == "baseline-unet":
@@ -85,6 +92,7 @@ if __name__ == "__main__":
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
+            checkpoint_path=args.checkpoint_path,
         )
     elif args.model == "swin-unet":
         print("Running SWIN-UNet...")
