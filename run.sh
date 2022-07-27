@@ -1,8 +1,4 @@
-module load gcc/6.3.0 python_gpu/3.8.5 eth_proxy
-python -m venv venv
-source venv/bin/activate
-module load gcc/6.3.0 python_gpu/3.8.5 eth_proxy
-pip3 install -r requirements.txt
+conda activate cil
 export PYTHONPATH=$PYTHONPATH:~/CI-Lab
 TAG=$(git rev-parse --short HEAD)
 
