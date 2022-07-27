@@ -9,6 +9,7 @@ import torch
 from .Encoders.swin_small import swin_pretrained
 from .Decoders.custom_decoder import Decoder
 import sys
+import cv2
 
 sys.path.append("..")
 
@@ -74,7 +75,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     optimizer = torch.optim.Adam(
         model.parameters(), lr=1e-3, weight_decay=1e-5)
 
-    train(
+    best_weights_path = train(
         train_dataloader=train_dataloader,
         eval_dataloader=val_dataloader,
         model=model,
@@ -89,34 +90,48 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     log("Training done!")
 
     log("Predicting on test set...")
-    # predict on test set
     test_path = os.path.join(test_path, "images")
-    test_filenames = sorted(glob(test_path + "/*.png"))
+    test_filenames = glob(test_path + "/*.png")
     test_images = load_all_from_path(test_path)
+    batch_size = test_images.shape[0]
+    size = test_images.shape[1:3]
+    # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
+    log("Resizing test images...")
+    test_images = np.stack(
+        [img for img in test_images], 0
+    )
     test_images = test_images[:, :, :, :3]
-    log(f"{test_images.shape[0]} were loaded")
-    test_images = np.moveaxis(test_images, -1, 1)  # HWC to CHW
+    test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
+    log("Making predictions...")
 
-    log(test_images.shape)
     os.makedirs("preds/segmentations", exist_ok=True)
     with torch.no_grad():
-        for i, test_image in enumerate(test_images):
-            test_image = torch.from_numpy(test_image).unsqueeze(0).to(device)
-            pred = model(test_image).cpu().numpy().squeeze(0).squeeze(0)
+        checkpoint = torch.load(best_weights_path)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        log(f"Loaded best model weights ({best_weights_path})")
+        test_pred = [
+            model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
+        ]
 
-            # log(pred)
-            # pred[np.where(pred > 0.5)] = 1
-            # pred[np.where(pred <= 0.5)] = 0
-            # pred = pred.round()
-            tmp = Image.fromarray((pred * 250).astype(np.uint8))
-            tmp.save(f"preds/segmentations/pred_{i}.png")
-
-    from mask_to_submission import masks_to_submission
-
-    masks_to_submission(
-        "preds/_preds.csv",
-        "",
-        *map(lambda x: f"preds/segmentations/{x}",
-             os.listdir("preds/segmentations")),
+    test_pred = np.concatenate(test_pred, 0)
+    test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
+    test_pred = np.stack(
+        [img for img in test_pred], 0
+    )  # resize to original shape
+    # Now compute labels
+    test_pred = test_pred.reshape(
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
+         size[0] // PATCH_SIZE, PATCH_SIZE)
+    )
+    test_pred = np.moveaxis(test_pred, 2, 3)
+    test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
+    log(f"Test predictions shape: {test_pred.shape}")
+    now = datetime.now()
+    t = now.strftime("%Y-%m-%d_%H-%M-%S")
+    os.makedirs("submissions", exist_ok=True)
+    create_submission(
+        test_pred,
+        test_filenames,
+        submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
     )
     log(f"Created submission!")
