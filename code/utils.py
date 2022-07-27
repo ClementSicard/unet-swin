@@ -61,7 +61,8 @@ def image_to_patches(images, masks=None):
     if masks is None:
         return patches
 
-    masks = masks.reshape((n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
+    masks = masks.reshape(
+        (n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
     masks = np.moveaxis(masks, 2, 3)
     labels = np.mean(masks, (-1, -2, -3)) > CUTOFF  # compute labels
     labels = labels.reshape(-1).astype(np.float32)
@@ -74,7 +75,7 @@ def log(message: str, print_message=True):
     t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     to_write = f"[{t}]\t{message}\n"
     command = f'TAG=$(git rev-parse --short HEAD);echo "{to_write}" >> logs/$TAG.log'
-    Popen(command, shell=True).wait()
+    # Popen(command, shell=True).wait()
 
 
 def show_patched_image(patches, labels, h_patches=25, w_patches=25):
@@ -142,3 +143,21 @@ def np_to_tensor(x, device):
 
 def get_best_available_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def patch_accuracy_fn(y_hat, y):
+    # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
+    h_patches = y.shape[-2] // PATCH_SIZE
+    w_patches = y.shape[-1] // PATCH_SIZE
+    patches_hat = (
+        y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean(
+            (-1, -3)
+        )
+        > CUTOFF
+    )
+    patches = (
+        y.reshape(-1, 1, h_patches, PATCH_SIZE,
+                  w_patches, PATCH_SIZE).mean((-1, -3))
+        > CUTOFF
+    )
+    return (patches == patches_hat).float().mean()

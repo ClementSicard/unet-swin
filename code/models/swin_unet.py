@@ -6,8 +6,8 @@ from train import train
 from dataset import ImageDataset
 from PIL import Image
 import torch
-from .encoders.swin_small import swin_pretrained
-from .decoders.custom_decoder import Decoder
+from .Encoders.swin_small import swin_pretrained
+from .Decoders.custom_decoder import Decoder
 import sys
 
 sys.path.append("..")
@@ -53,9 +53,9 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
     train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=False)
+        train_path, device, use_patches=False, augment=True)
     val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=False)
+        val_path, device, use_patches=False, augment=True)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -63,7 +63,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         val_dataset, batch_size=batch_size, shuffle=True
     )
     model = SwinUnet().to(device)
-    # model.encoder.features.requires_grad_ = False
+    model.encoder.features.requires_grad_ = False
     # param.requires_grad = False
     # model.encoder.weight.requires_grad = False
     # exit()

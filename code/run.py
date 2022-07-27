@@ -8,8 +8,9 @@ from torchvision import __version__
 log(f"Running torchvision {__version__}")
 
 try:
-    import models.swin_unet as swin_unet
-except:
+    import models.swin_unet as swinunet
+except Exception as e:
+    log(e)
     log(f"Could not import swin_unet. Running on torchvision {__version__}")
 
 
@@ -19,7 +20,8 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet",
+                 "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--train-dir",
@@ -103,7 +105,7 @@ if __name__ == "__main__":
         )
     elif args.model == "swin-unet":
         log("Running SWIN-UNet...")
-        swin_unet.run(
+        swinunet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
             test_path=args.test_dir,

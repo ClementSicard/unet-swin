@@ -1,3 +1,8 @@
+from datetime import datetime
+from train import train
+from dataset import ImageDataset
+from utils import *
+from ..losses.dice_loss import BinaryDiceLoss
 from torch import nn
 import torch
 import sys
@@ -6,11 +11,6 @@ import cv2
 from torchmetrics import F1Score
 
 sys.path.append("..")
-from ..losses.dice_loss import BinaryDiceLoss
-from utils import *
-from dataset import ImageDataset
-from train import train
-from datetime import datetime
 
 
 class Block(nn.Module):
@@ -18,7 +18,8 @@ class Block(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=in_ch, out_channels=out_ch,
+                      kernel_size=3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(out_ch),
             nn.Conv2d(
@@ -38,7 +39,8 @@ class UNet(nn.Module):
         enc_chs = chs  # number of channels in the encoder
         dec_chs = chs[::-1][:-1]  # number of channels in the decoder
         self.enc_blocks = nn.ModuleList(
-            [Block(in_ch, out_ch) for in_ch, out_ch in zip(enc_chs[:-1], enc_chs[1:])]
+            [Block(in_ch, out_ch)
+             for in_ch, out_ch in zip(enc_chs[:-1], enc_chs[1:])]
         )  # encoder blocks
         self.pool = nn.MaxPool2d(
             2
@@ -50,7 +52,8 @@ class UNet(nn.Module):
             ]
         )  # deconvolution
         self.dec_blocks = nn.ModuleList(
-            [Block(in_ch, out_ch) for in_ch, out_ch in zip(dec_chs[:-1], dec_chs[1:])]
+            [Block(in_ch, out_ch)
+             for in_ch, out_ch in zip(dec_chs[:-1], dec_chs[1:])]
         )  # decoder blocks
         self.head = nn.Sequential(
             nn.Conv2d(dec_chs[-1], 1, 1), nn.Sigmoid()
@@ -72,23 +75,6 @@ class UNet(nn.Module):
             x = torch.cat([x, feature], dim=1)  # concatenate skip features
             x = block(x)  # pass through the block
         return self.head(x)  # reduce to 1 channel
-
-
-def patch_accuracy_fn(y_hat, y):
-    # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
-    h_patches = y.shape[-2] // PATCH_SIZE
-    w_patches = y.shape[-1] // PATCH_SIZE
-    patches_hat = (
-        y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean(
-            (-1, -3)
-        )
-        > CUTOFF
-    )
-    patches = (
-        y.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3))
-        > CUTOFF
-    )
-    return (patches == patches_hat).float().mean()
 
 
 def run(
@@ -160,7 +146,8 @@ def run(
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
-    test_pred = [model(t).detach().cpu().numpy() for t in test_images.unsqueeze(1)]
+    test_pred = [model(t).detach().cpu().numpy()
+                 for t in test_images.unsqueeze(1)]
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
     test_pred = np.stack(
@@ -168,7 +155,8 @@ def run(
     )  # resize to original shape
     # now compute labels
     test_pred = test_pred.reshape(
-        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
+         size[0] // PATCH_SIZE, PATCH_SIZE)
     )
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
