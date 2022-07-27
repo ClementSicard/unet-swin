@@ -6,10 +6,9 @@ from train import train
 from dataset import ImageDataset
 from PIL import Image
 import torch
-from .Encoders.swin_small import swin_pretrained
-from .Decoders.custom_decoder import Decoder
+from .encoders.swin_small import swin_pretrained
+from .decoders.custom_decoder import Decoder
 import sys
-import cv2
 
 sys.path.append("..")
 
@@ -25,11 +24,10 @@ class SwinUnet(torch.nn.Module):
         self.encoder = swin_pretrained().to(device)
         self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
         self.head = torch.nn.Sequential(
-            torch.nn.Conv2d(self.decoder.last_conv2.out_channels,
-                            1, 1), torch.nn.Sigmoid()
+            torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
+            torch.nn.Sigmoid(),
         )
-        self.prev_conv = torch.nn.Conv2d(
-            768, 768, kernel_size=3, padding=1, bias=False)
+        self.prev_conv = torch.nn.Conv2d(768, 768, kernel_size=3, padding=1, bias=False)
         self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
@@ -48,15 +46,21 @@ class SwinUnet(torch.nn.Module):
         return self.head(x)
 
 
-def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=128):
+def run(
+    train_path: str,
+    val_path: str,
+    test_path: str,
+    n_epochs=20,
+    batch_size=128,
+    model_save_dir=None,
+    checkpoint_path=None,
+):
     log("Training Swin-Unet Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=True)
-    val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=True)
+    train_dataset = ImageDataset(train_path, device, use_patches=False, augment=True)
+    val_dataset = ImageDataset(val_path, device, use_patches=False, augment=True)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -72,8 +76,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -84,6 +87,9 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         best_metric_fn=best_metric_fns,
         optimizer=optimizer,
         n_epochs=n_epochs,
+        checkpoint_path=checkpoint_path,
+        save_state=True,
+        model_save_path=model_save_dir,
         model_name="swin-unet",
     )
 
@@ -97,9 +103,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     size = test_images.shape[1:3]
     # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
     log("Resizing test images...")
-    test_images = np.stack(
-        [img for img in test_images], 0
-    )
+    test_images = np.stack([img for img in test_images], 0)
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
@@ -115,13 +119,10 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
 
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-    test_pred = np.stack(
-        [img for img in test_pred], 0
-    )  # resize to original shape
+    test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
     # Now compute labels
     test_pred = test_pred.reshape(
-        (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
-         size[0] // PATCH_SIZE, PATCH_SIZE)
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
     )
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)

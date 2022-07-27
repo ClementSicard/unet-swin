@@ -82,6 +82,7 @@ def run(
     batch_size=4,
     checkpoint_path=None,
     augment: bool = False,
+    model_save_dir: str = None,
 ):
     log("Training Vanilla-UNet Baseline...")
 
@@ -121,6 +122,8 @@ def run(
         metric_fns=metric_fns,
         best_metric_fn=best_metric_fn,
         checkpoint_path=checkpoint_path,
+        model_save_path=model_save_dir,
+        save_state=True,
         optimizer=optimizer,
         n_epochs=n_epochs,
         model_name="baseline_vanilla_unet",

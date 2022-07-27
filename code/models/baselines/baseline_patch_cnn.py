@@ -48,6 +48,7 @@ def run(
     n_epochs: int = 20,
     batch_size: int = 128,
     checkpoint_path: str = None,
+    model_save_dir: str = None,
 ):
     log("Training Patch-CNN Baseline...")
     device = (
@@ -78,6 +79,7 @@ def run(
         optimizer=optimizer,
         n_epochs=n_epochs,
         checkpoint_path=checkpoint_path,
+        model_save_path=model_save_dir,
         model_name="baseline_patch_cnn",
     )
 

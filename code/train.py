@@ -49,6 +49,7 @@ def train(
     model_name,
     save_state=True,
     checkpoint_path=None,
+    model_save_path=None,
     interactive=False,
 ):
     """
@@ -163,12 +164,20 @@ def train(
             )
             best_metric_fn_val = epoch_best_metric_fn_val
             if save_state:
-                best_model_path = pjoin(
-                    "checkpoints",
-                    model_name,
-                    f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
-                )
-                os.makedirs(f"./checkpoints/{model_name}", exist_ok=True)
+                if model_save_path:
+                    best_model_path = pjoin(
+                        model_save_path,
+                        "checkpoints",
+                        model_name,
+                        f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
+                    )
+                else:
+                    best_model_path = pjoin(
+                        "checkpoints",
+                        model_name,
+                        f"best_{best_metric_key}_{best_metric_fn_val:4f}_epoch_{epoch}.pt",
+                    )
+                os.makedirs(os.path.dirname(best_model_path), exist_ok=True)
                 torch.save(
                     {
                         "epoch": epoch,

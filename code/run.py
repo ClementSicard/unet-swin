@@ -20,14 +20,18 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet",
-                 "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--train-dir",
         type=str,
         required=True,
         help="Path to the training directory",
+    )
+    parser.add_argument(
+        "--model-save-dir",
+        type=str,
+        help="Path where the model will be saved",
     )
     parser.add_argument(
         "--no-augment",
@@ -102,6 +106,7 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
             augment=args.no_augment,
+            model_save_dir=args.model_save_dir,
         )
     elif args.model == "swin-unet":
         log("Running SWIN-UNet...")
@@ -111,7 +116,9 @@ if __name__ == "__main__":
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
-            # model_type="swin-unet",
+            checkpoint_path=args.checkpoint_path,
+            augment=args.no_augment,
+            model_save_dir=args.model_save_dir,
         )
     else:
         raise NotImplementedError("Not implemented yet")
