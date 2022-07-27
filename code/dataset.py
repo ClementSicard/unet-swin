@@ -3,6 +3,7 @@ from torchvision import transforms
 from consts import *
 import torch
 import os
+import cv2
 from utils import *
 
 
@@ -23,9 +24,8 @@ class ImageDataset(torch.utils.data.Dataset):
         self.x, self.y, self.n_samples = None, None, None
         self.augment = augment
         self.verbose = verbose
-        self._load_data()
-
         self.N_TRANSFORMS = 6
+        self._load_data()
 
     def __repr__(self) -> str:
         return super().__repr__()
@@ -37,10 +37,21 @@ class ImageDataset(torch.utils.data.Dataset):
         if self.use_patches:  # split each image into patches
             self.x, self.y = image_to_patches(self.x, self.y)
 
+        elif self.resize_to != (self.x.shape[1], self.x.shape[2]):  # resize images
+            self.x = np.stack(
+                [cv2.resize(img, dsize=self.resize_to) for img in self.x], 0
+            )
+            self.y = np.stack(
+                [cv2.resize(mask, dsize=self.resize_to) for mask in self.y], 0
+            )
+
         self.x = np.moveaxis(
             self.x, -1, 1
         )  # pytorch works with CHW format instead of HWC
         self.n_samples = len(self.x)
+        print(
+            f"Using {'AUGMENTED' if self.augment else 'REGULAR'} dataset, with {len(self)} samples in total"
+        )
 
     def transform(self, image, mask, index):
         """
