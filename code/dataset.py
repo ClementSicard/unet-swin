@@ -94,7 +94,7 @@ class ImageDataset(torch.utils.data.Dataset):
             t_mask = TF.rotate(mask, angle=-90) if not self.use_patches else mask
 
         elif mod == 4:
-            t_image = (TF.rotate(image, angle=90),)
+            t_image = TF.rotate(image, angle=90)
             t_mask = TF.rotate(mask, angle=90) if not self.use_patches else mask
 
         elif mod == 5:
@@ -115,8 +115,20 @@ class ImageDataset(torch.utils.data.Dataset):
             )
 
         if self.use_patches:
+            assert isinstance(
+                t_image, torch.Tensor
+            ), f"t_image should be a tensor, but is {type(t_image)}"
+            assert isinstance(
+                t_mask[0], torch.Tensor
+            ), f"t_mask[0] should be a tensor, but is {type(t_mask[0])}"
             return t_image, t_mask[0]
         else:
+            assert isinstance(
+                t_image, torch.Tensor
+            ), f"Mod {mod}\tt_image should be a tensor, but is {type(t_image)}"
+            assert isinstance(
+                t_mask, torch.Tensor
+            ), f"Mod {mod}\tt_mask should be a tensor, but is {type(t_mask)}"
             return t_image, t_mask
 
     def __getitem__(self, index):
