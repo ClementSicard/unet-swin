@@ -2,10 +2,16 @@ from PIL import Image
 import torch
 from .encoders.swin_small import swin_pretrained
 from .decoders.custom_decoder import Decoder
+import sys
+
+sys.path.append("..")
+
 from dataset import ImageDataset
 from train import train
 from utils import *
 from datetime import datetime
+import os
+import numpy as np
 
 INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 3)]
 
@@ -60,14 +66,14 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     train(
-        train_dataloader,
-        val_dataloader,
-        model,
-        loss_fn,
-        metric_fns,
-        optimizer,
-        n_epochs,
-        "swin-unet",
+        train_dataloader=train_dataloader,
+        eval_dataloader=val_dataloader,
+        model=model,
+        loss_fn=loss_fn,
+        metric_fns=metric_fns,
+        optimizer=optimizer,
+        n_epoches=n_epochs,
+        model_name="swin-unet",
     )
 
     print("Training done!")
