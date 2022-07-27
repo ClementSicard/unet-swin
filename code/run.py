@@ -3,12 +3,13 @@ import argparse
 import models.baselines.baseline_svm_classifier as svc
 import models.baselines.baseline_patch_cnn as patch_cnn
 import models.baselines.baseline_vanilla_unet as vanilla_unet
+from torchvision import __version__
+
+log(f"Running torchvision {__version__}")
 
 try:
     import models.swin_unet as swin_unet
 except:
-    from torchvision import __version__
-
     log(f"Could not import swin_unet. Running on torchvision {__version__}")
 
 

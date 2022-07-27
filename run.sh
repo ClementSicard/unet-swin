@@ -6,7 +6,7 @@ pip3 install -r requirements.txt
 export PYTHONPATH=$PYTHONPATH:~/CI-Lab
 TAG=$(git rev-parse --short HEAD)
 
-python code/run.py baseline-unet \
+python code/run.py swin-unet \
     --train-dir "data/training" \
     --test-dir "data/test" \
     --val-dir "data/validation" \
