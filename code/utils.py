@@ -84,6 +84,7 @@ def accuracy_fn(y_hat, y):
 
 
 def create_submission(labels, test_filenames, submission_filename):
+    os.makedirs(os.path.dirname(submission_filename), exist_ok=True)
     with open(submission_filename, "w") as f:
         f.write("id,prediction\n")
         for fn, patch_array in zip(sorted(test_filenames), labels):
@@ -129,9 +130,4 @@ def np_to_tensor(x, device):
 
 
 def get_best_available_device():
-    if torch.cuda.is_available():
-        return "cuda"
-    elif torch.backends.mps.is_available():
-        return "mps"
-    else:
-        return "cpu"
+    return "cuda" if torch.cuda.is_available() else "cpu"
