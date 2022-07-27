@@ -1,6 +1,7 @@
 # n'uploadouns pas les models dans le cloud
 checkpoints/
 preds/
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
