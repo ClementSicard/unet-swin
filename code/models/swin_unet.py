@@ -6,7 +6,7 @@ from train import train
 from dataset import ImageDataset
 from PIL import Image
 import torch
-from .encoders.swin_small import swin_pretrained
+from .encoders.swin_small import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
 
@@ -21,7 +21,7 @@ class SwinUnet(torch.nn.Module):
         super(SwinUnet, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.encoder = swin_pretrained().to(device)
+        self.encoder = swin_pretrained_b().to(device)
         self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
         self.head = torch.nn.Sequential(
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
