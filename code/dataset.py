@@ -50,7 +50,7 @@ class ImageDataset(torch.utils.data.Dataset):
         )  # pytorch works with CHW format instead of HWC
         self.n_samples = len(self.x)
         print(
-            f"Using {'AUGMENTED' if self.augment else 'REGULAR'} dataset, with {len(self)} samples in total"
+            f"Using {'AUGMENTED' if self.augment else 'REGULAR'} dataset {'WITH' if self.use_patches else 'WITHOUT'} patches, with {len(self)} samples in total"
         )
 
     def transform(self, image, mask, index):
