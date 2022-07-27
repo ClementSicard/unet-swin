@@ -5,14 +5,14 @@ import models.baselines.baseline_patch_cnn as patch_cnn
 import models.baselines.baseline_vanilla_unet as vanilla_unet
 import models.swin_unet as swin_unet
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet",
-                 "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--train-dir",
@@ -47,6 +47,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     print(vars(args))
+
+    device = get_best_available_device()
+    print(f"PyTorch using device: {device}")
 
     if args.model == "baseline-svc":
         print("Running baseline SVC...")
