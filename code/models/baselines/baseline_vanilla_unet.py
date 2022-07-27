@@ -1,3 +1,8 @@
+from datetime import datetime
+from train import train
+from dataset import ImageDataset
+from utils import *
+from ..losses.dice_loss import BinaryDiceLoss
 from torch import nn
 import torch
 import sys
@@ -6,11 +11,6 @@ import cv2
 from torchmetrics import F1Score
 
 sys.path.append("..")
-from ..losses.dice_loss import BinaryDiceLoss
-from utils import *
-from dataset import ImageDataset
-from train import train
-from datetime import datetime
 
 
 class Block(nn.Module):
@@ -72,23 +72,6 @@ class UNet(nn.Module):
             x = torch.cat([x, feature], dim=1)  # concatenate skip features
             x = block(x)  # pass through the block
         return self.head(x)  # reduce to 1 channel
-
-
-def patch_accuracy_fn(y_hat, y):
-    # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
-    h_patches = y.shape[-2] // PATCH_SIZE
-    w_patches = y.shape[-1] // PATCH_SIZE
-    patches_hat = (
-        y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean(
-            (-1, -3)
-        )
-        > CUTOFF
-    )
-    patches = (
-        y.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3))
-        > CUTOFF
-    )
-    return (patches == patches_hat).float().mean()
 
 
 def run(
