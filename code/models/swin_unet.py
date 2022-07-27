@@ -80,9 +80,9 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         model=model,
         loss_fn=loss_fn,
         metric_fns=metric_fns,
-        best_metric_fns=best_metric_fns,
+        best_metric_fn=best_metric_fns,
         optimizer=optimizer,
-        n_epoches=n_epochs,
+        n_epochs=n_epochs,
         model_name="swin-unet",
     )
 
