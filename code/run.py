@@ -20,7 +20,8 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet",
+                 "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--train-dir",
@@ -117,7 +118,7 @@ if __name__ == "__main__":
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
-            augment=args.no_augment,
+            # augment=args.no_augment,
             model_save_dir=args.model_save_dir,
         )
     else:
