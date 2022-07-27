@@ -49,5 +49,5 @@ def run(train_path: str, val_path: str, test_path: str):
     create_submission(
         test_pred,
         test_filenames,
-        submission_filename=f"./submissions/svc_submission_{t}.csv",
+        submission_filename=f"./submissions/baseline_svc_submission_{t}.csv",
     )

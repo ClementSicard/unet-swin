@@ -3,6 +3,7 @@ import torch
 import sys
 import numpy as np
 import cv2
+from torchmetrics import F1Score
 
 sys.path.append("..")
 from ..losses.dice_loss import BinaryDiceLoss
@@ -90,7 +91,14 @@ def patch_accuracy_fn(y_hat, y):
     return (patches == patches_hat).float().mean()
 
 
-def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=4):
+def run(
+    train_path: str,
+    val_path: str,
+    test_path: str,
+    n_epochs=35,
+    batch_size=4,
+    checkpoint_path=None,
+):
     print("Training Vanilla-UNet Baseline...")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -117,17 +125,20 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=
     )
     model = UNet().to(device)
     loss_fn = nn.BCELoss()
+    best_metric_fn = {"patch_acc": patch_accuracy_fn}
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     optimizer = torch.optim.Adam(model.parameters())
 
     train(
-        train_dataloader,
-        val_dataloader,
-        model,
-        loss_fn,
-        metric_fns,
-        optimizer,
-        n_epochs,
+        train_dataloader=train_dataloader,
+        eval_dataloader=val_dataloader,
+        model=model,
+        loss_fn=loss_fn,
+        metric_fns=metric_fns,
+        best_metric_fn=best_metric_fn,
+        checkpoint_path=checkpoint_path,
+        optimizer=optimizer,
+        n_epochs=n_epochs,
         model_name="baseline_vanilla_unet",
     )
 
@@ -167,6 +178,6 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=35, batch_size=
     create_submission(
         test_pred,
         test_filenames,
-        submission_filename=f"./submissions/unet_submission_{t}.csv",
+        submission_filename=f"./submissions/baseline_unet_submission_{t}.csv",
     )
     print(f"Created submission!")

@@ -41,7 +41,14 @@ class PatchCNN(nn.Module):
         return self.net(x)
 
 
-def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=128):
+def run(
+    train_path: str,
+    val_path: str,
+    test_path: str,
+    n_epochs=20,
+    batch_size=128,
+    checkpoint_path=None,
+):
     print("Training Patch-CNN Baseline...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -61,13 +68,14 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     optimizer = torch.optim.Adam(model.parameters())
 
     train(
-        train_dataloader,
-        val_dataloader,
-        model,
-        loss_fn,
-        metric_fns,
-        optimizer,
-        n_epochs,
+        train_dataloader=train_dataloader,
+        eval_dataloader=val_dataloader,
+        model=model,
+        loss_fn=loss_fn,
+        metric_fns=metric_fns,
+        optimizer=optimizer,
+        n_epochs=n_epochs,
+        checkpoint_path=checkpoint_path,
         model_name="baseline_patch_cnn",
     )
 
@@ -103,6 +111,6 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     create_submission(
         test_pred,
         test_filenames,
-        submission_filename=f"./submissions/cnn_submission_{t}.csv",
+        submission_filename=f"./submissions/baseline_cnn_submission_{t}.csv",
     )
     print(f"Created submission!")
