@@ -5,7 +5,6 @@ from torchvision.models._utils import V
 
 
 class IntSwinS(SwinTransformer):
-
     def forward(self, x):
         self.x_int = [x]
         for i in range(len(self.features)):
@@ -44,8 +43,7 @@ def _swin_transformer(
     **kwargs: Any,
 ) -> SwinTransformer:
     if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes",
-                              len(weights.meta["categories"]))
+        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
     model = IntSwinS(
         patch_size=patch_size,

@@ -1,7 +1,7 @@
 from PIL import Image
 import torch
-from .Encoders.SwinSmall import swin_pretrained
-from .Decoders.CustomDecoder import Decoder
+from .encoders.swin_small import swin_pretrained
+from .decoders.custom_decoder import Decoder
 from dataset import ImageDataset
 from train import train
 from utils import *
@@ -11,17 +11,14 @@ INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 3)]
 
 
 class SwinUnet(torch.nn.Module):
-    def __init__(
-        self
-    ):
+    def __init__(self):
         super(SwinUnet, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.encoder = swin_pretrained().to(device)
         self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
-        self.prev_conv = torch.nn.Conv2d(
-            768, 768, kernel_size=3, padding=1, bias=False)
-        self.fully_connected = torch.nn.Linear(16*16, 1)
+        self.prev_conv = torch.nn.Conv2d(768, 768, kernel_size=3, padding=1, bias=False)
+        self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
         # askip on preprocess les images
@@ -44,10 +41,8 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=False)
-    val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=False)
+    train_dataset = ImageDataset(train_path, device, use_patches=False, augment=False)
+    val_dataset = ImageDataset(val_path, device, use_patches=False, augment=False)
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
@@ -62,8 +57,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     loss_fn = torch.nn.BCELoss()
     # loss_fn = BinaryDiceLoss()
     metric_fns = {"acc": accuracy_fn}
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     train(
         train_dataloader,
@@ -73,7 +67,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
         metric_fns,
         optimizer,
         n_epochs,
-        "swin-unet"
+        "swin-unet",
     )
 
     print("Training done!")
@@ -85,8 +79,7 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
     test_images = load_all_from_path(test_path)
     test_images = test_images[:, :, :, :3]
     print(f"{test_images.shape[0]} were loaded")
-    test_images = np.moveaxis(
-        test_images, -1, 1)  # HWC to CHW
+    test_images = np.moveaxis(test_images, -1, 1)  # HWC to CHW
 
     print(test_images.shape)
     os.makedirs("preds/segmentations", exist_ok=True)
@@ -100,10 +93,13 @@ def run(train_path: str, val_path: str, test_path: str, n_epochs=20, batch_size=
             # pred[np.where(pred <= 0.5)] = 0
             # pred = pred.round()
             tmp = Image.fromarray((pred * 250).astype(np.uint8))
-            tmp.save(
-                f"preds/segmentations/pred_{i}.png")
+            tmp.save(f"preds/segmentations/pred_{i}.png")
 
     from mask_to_submission import masks_to_submission
-    masks_to_submission("preds/_preds.csv", "",
-                        *map(lambda x: f"preds/segmentations/{x}", os.listdir("preds/segmentations")))
+
+    masks_to_submission(
+        "preds/_preds.csv",
+        "",
+        *map(lambda x: f"preds/segmentations/{x}", os.listdir("preds/segmentations")),
+    )
     print(f"Created submission!")

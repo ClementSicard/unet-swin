@@ -20,8 +20,7 @@ class DecoderBlock(torch.nn.Module):
         self.conv1 = torch.nn.Conv2d(
             down_channels, up_channels, kernel_size=kernel_size, padding=2
         )
-        self.conv2 = torch.nn.Conv2d(
-            up_channels, up_channels, kernel_size=kernel_size)
+        self.conv2 = torch.nn.Conv2d(up_channels, up_channels, kernel_size=kernel_size)
         self.dropout = torch.nn.Dropout(dropout)
         self.last_up = torch.nn.ConvTranspose2d(3, 3, kernel_size=2, stride=2)
         # self.last_conv = torch.nn.Conv2d
