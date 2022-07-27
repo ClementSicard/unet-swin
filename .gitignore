@@ -1,7 +1,6 @@
 # n'uploadouns pas les models dans le cloud
-models/
+./models/
 preds/
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
