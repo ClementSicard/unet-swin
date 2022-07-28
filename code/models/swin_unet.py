@@ -173,11 +173,11 @@ def run(
 
             full_pred[0:CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
                 pred_cropped[0], dsize=(CROP_SIZE, CROP_SIZE))
-            full_pred[CROP_SIZE:400, 0:CROP_SIZE, :] = cv2.resize(
+            full_pred[CROP_SIZE:2*CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
                 pred_cropped[1], dsize=(CROP_SIZE, CROP_SIZE))
             full_pred[0:CROP_SIZE, CROP_SIZE:2*CROP_SIZE, :] = cv2.resize(
                 pred_cropped[2], dsize=(CROP_SIZE, CROP_SIZE))
-            full_pred[CROP_SIZE:CROP_SIZE, CROP_SIZE:2*CROP_SIZE, :] = cv2.resize(
+            full_pred[CROP_SIZE:2*CROP_SIZE, CROP_SIZE:2*CROP_SIZE, :] = cv2.resize(
                 pred_cropped[3], dsize=(CROP_SIZE, CROP_SIZE))
 
             test_pred.append(full_pred)
