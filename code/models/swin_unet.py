@@ -6,12 +6,14 @@ from train import train
 from dataset import ImageDataset
 from PIL import Image
 import torch
+
 from .losses.dice_loss import BinaryDiceLoss
+from .losses.mixed_loss import MixedLoss
+from .losses.focal_loss import FocalLoss
+
 from .encoders.swin import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
-from .losses.dice_loss import BinaryDiceLoss
-from .losses.focal_loss import FocalLoss
 
 sys.path.append("..")
 
@@ -30,12 +32,22 @@ class SwinUnet(torch.nn.Module):
             self.encoder = swin_pretrained_s().to(device)
             self.decoder = Decoder(INFERED_SIZES).to(device)
             self.prev_conv = torch.nn.Conv2d(
-                INFERED_SIZES[0][0], INFERED_SIZES[0][0], kernel_size=3, padding=1, bias=True)
+                INFERED_SIZES[0][0],
+                INFERED_SIZES[0][0],
+                kernel_size=3,
+                padding=1,
+                bias=True,
+            )
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
             self.prev_conv = torch.nn.Conv2d(
-                INFERED_SIZES_B[0][0], INFERED_SIZES_B[0][0], kernel_size=3, padding=1, bias=True)
+                INFERED_SIZES_B[0][0],
+                INFERED_SIZES_B[0][0],
+                kernel_size=3,
+                padding=1,
+                bias=True,
+            )
         self.head = torch.nn.Sequential(
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
             torch.nn.Sigmoid(),
@@ -72,20 +84,39 @@ def run(
     model_save_dir: str = None,
     checkpoint_path: str = None,
     model_type: str = "small",
-    loss: str = "bce",
+    loss: str = "focal",
 ):
-    assert loss in {"bce", "dice", "mix"}
+    assert loss in {"bce", "dice", "mixed", "focal"}
     log("Training Swin-Unet Baseline...")
-    device = "cuda" if torch.cuda.is_available(
-    ) else "cpu"  # automatically select device
+    device = (
+        "cuda" if torch.cuda.is_available() else "cpu"
+    )  # automatically select device
     train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=True, crop=True, resize_to=(208, 208))
+        train_path,
+        device,
+        use_patches=False,
+        augment=True,
+        crop=True,
+        resize_to=(208, 208),
+    )
     val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=True, crop=True, resize_to=(208, 208))
+        val_path,
+        device,
+        use_patches=False,
+        augment=True,
+        crop=True,
+        resize_to=(208, 208),
+    )
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True)
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+    )
     val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=True)
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+    )
     model = SwinUnet(model_type=model_type).to(device)
 
     # model.encoder.features.requires_grad_ = False
@@ -99,15 +130,15 @@ def run(
 
     # Decay LR by a factor of 0.1 every 7 epochs
     exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer_ft, step_size=7, gamma=0.1)
+        optimizer_ft, step_size=7, gamma=0.1
+    )
 
     if loss == "bce":
         loss_fn = torch.nn.BCELoss()
     elif loss == "dice":
         loss_fn = BinaryDiceLoss()
-    elif loss == "mix":
-        def loss_fn(y_hat, y): return 0.4 * torch.nn.BCELoss()(y_hat,
-                                                               y) + 0.6 * BinaryDiceLoss()(y_hat, y)
+    elif loss == "mixed":
+        loss_fn = MixedLoss()
     elif loss == "focal":
         loss_fn = FocalLoss()
     else:
@@ -115,8 +146,7 @@ def run(
 
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -142,7 +172,7 @@ def run(
     test_images = load_all_from_path(test_path)
     batch_size = test_images.shape[0]
     size = test_images.shape[1:3]
- # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
+    # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
     log("Resizing test images...")
     test_images = np.stack([img for img in test_images], 0)
     test_images = test_images[:, :, :, :3]
@@ -154,16 +184,17 @@ def run(
         checkpoint = torch.load(best_weights_path)
         model.load_state_dict(checkpoint["model_state_dict"])
         log(f"Loaded best model weights ({best_weights_path})")
-        test_pred = [model(t).detach().cpu().numpy()
-                     for t in tqdm(test_images.unsqueeze(1))]
+        test_pred = [
+            model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
+        ]
 
         test_pred = np.concatenate(test_pred, 0)
         test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-        test_pred = np.stack([img for img in test_pred],
-                             0)  # resize to original shape
+        test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
         # Now compute labels
         test_pred = test_pred.reshape(
-            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE))
+            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+        )
         test_pred = np.moveaxis(test_pred, 2, 3)
         test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
         log(f"Test predictions shape: {test_pred.shape}")
