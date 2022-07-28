@@ -79,9 +79,9 @@ def run(
     device = "cuda" if torch.cuda.is_available(
     ) else "cpu"  # automatically select device
     train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=True, crop=True, resize_to=(200, 200))
+        train_path, device, use_patches=False, augment=True, crop=True, resize_to=(208, 208))
     val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=True, crop=True, resize_to=(200, 200))
+        val_path, device, use_patches=False, augment=True, crop=True, resize_to=(208, 208))
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(
