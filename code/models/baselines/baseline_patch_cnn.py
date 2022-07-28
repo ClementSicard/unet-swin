@@ -5,6 +5,8 @@ import numpy as np
 
 sys.path.append("..")
 from ..losses.dice_loss import BinaryDiceLoss
+from ..losses.focal_loss import FocalLoss
+from ..losses.mixed_loss import MixedLoss
 from utils import *
 from dataset import ImageDataset
 from train import train
@@ -49,6 +51,7 @@ def run(
     batch_size: int = 128,
     checkpoint_path: str = None,
     model_save_dir: str = None,
+    loss: str = "bce",
 ):
     log("Training Patch-CNN Baseline...")
     device = (
@@ -63,10 +66,18 @@ def run(
         val_dataset, batch_size=batch_size, shuffle=True
     )
     model = PatchCNN().to(device)
-    loss_fn = nn.BCELoss()
-    # loss_fn = BinaryDiceLoss()
+
+    if loss == "bce":
+        loss_fn = nn.BCELoss()
+    elif loss == "dice":
+        loss_fn = BinaryDiceLoss()
+    elif loss == "mixed":
+        loss_fn = MixedLoss()
+    elif loss == "focal":
+        loss_fn = FocalLoss()
+
     metric_fns = {"acc": accuracy_fn}
-    best_metric_fn = {"acc": accuracy_fn}
+    best_metric_fn = {"patch_f1_score": patch_f1_score_fn}
     optimizer = torch.optim.Adam(model.parameters())
 
     train(

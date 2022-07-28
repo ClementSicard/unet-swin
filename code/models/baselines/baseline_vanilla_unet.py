@@ -2,13 +2,14 @@ from datetime import datetime
 from train import train
 from dataset import ImageDataset
 from utils import *
+from ..losses.mixed_loss import MixedLoss
+from ..losses.focal_loss import FocalLoss
 from ..losses.dice_loss import BinaryDiceLoss
 from torch import nn
 import torch
 import sys
 import numpy as np
 import cv2
-from torchmetrics import F1Score
 
 sys.path.append("..")
 
@@ -21,7 +22,9 @@ class Block(nn.Module):
             nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(out_ch),
-            nn.Conv2d(in_channels=out_ch, out_channels=out_ch, kernel_size=3, padding=1),
+            nn.Conv2d(
+                in_channels=out_ch, out_channels=out_ch, kernel_size=3, padding=1
+            ),
             nn.ReLU(),
         )
 
@@ -38,9 +41,14 @@ class UNet(nn.Module):
         self.enc_blocks = nn.ModuleList(
             [Block(in_ch, out_ch) for in_ch, out_ch in zip(enc_chs[:-1], enc_chs[1:])]
         )  # encoder blocks
-        self.pool = nn.MaxPool2d(2)  # pooling layer (can be reused as it will not be trained)
+        self.pool = nn.MaxPool2d(
+            2
+        )  # pooling layer (can be reused as it will not be trained)
         self.upconvs = nn.ModuleList(
-            [nn.ConvTranspose2d(in_ch, out_ch, 2, 2) for in_ch, out_ch in zip(dec_chs[:-1], dec_chs[1:])]
+            [
+                nn.ConvTranspose2d(in_ch, out_ch, 2, 2)
+                for in_ch, out_ch in zip(dec_chs[:-1], dec_chs[1:])
+            ]
         )  # deconvolution
         self.dec_blocks = nn.ModuleList(
             [Block(in_ch, out_ch) for in_ch, out_ch in zip(dec_chs[:-1], dec_chs[1:])]
@@ -58,7 +66,9 @@ class UNet(nn.Module):
             x = self.pool(x)  # decrease resolution
         x = self.enc_blocks[-1](x)
         # decode
-        for block, upconv, feature in zip(self.dec_blocks, self.upconvs, enc_features[::-1]):
+        for block, upconv, feature in zip(
+            self.dec_blocks, self.upconvs, enc_features[::-1]
+        ):
             x = upconv(x)  # increase resolution
             x = torch.cat([x, feature], dim=1)  # concatenate skip features
             x = block(x)  # pass through the block
@@ -94,17 +104,30 @@ def run(
         resize_to=(384, 384),
         augment=augment,
     )
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    train_dataloader = torch.utils.data.DataLoader(
+        train_dataset, batch_size=batch_size, shuffle=True
+    )
+    val_dataloader = torch.utils.data.DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=True
+    )
     model = UNet().to(device)
     if loss == "bce":
         loss_fn = nn.BCELoss()
     elif loss == "dice":
         loss_fn = BinaryDiceLoss()
-    elif loss == "mix":
-        loss_fn = lambda y_hat, y: 0.4 * torch.nn.BCELoss()(y_hat, y) + 0.6 * BinaryDiceLoss()(y_hat, y)
-    best_metric_fn = {"patch_acc": patch_accuracy_fn}
-    metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
+    elif loss == "mixed":
+        loss_fn = MixedLoss()
+    elif loss == "focal":
+        loss_fn = FocalLoss()
+
+    best_metric_fn = {
+        "patch_f1_score": patch_f1_score_fn,
+    }
+    metric_fns = {
+        "acc": accuracy_fn,
+        "patch_acc": patch_accuracy_fn,
+        "patch_f1_score": patch_f1_score_fn,
+    }
     optimizer = torch.optim.Adam(model.parameters())
 
     best_weights_path = train(
@@ -133,7 +156,9 @@ def run(
     size = test_images.shape[1:3]
     # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
     log("Resizing test images...")
-    test_images = np.stack([cv2.resize(img, dsize=(384, 384)) for img in test_images], 0)
+    test_images = np.stack(
+        [cv2.resize(img, dsize=(384, 384)) for img in test_images], 0
+    )
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
@@ -142,12 +167,18 @@ def run(
     model.load_state_dict(checkpoint["model_state_dict"])
     log(f"Loaded best model weights ({best_weights_path})")
 
-    test_pred = [model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))]
+    test_pred = [
+        model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
+    ]
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-    test_pred = np.stack([cv2.resize(img, dsize=size) for img in test_pred], 0)  # resize to original shape
+    test_pred = np.stack(
+        [cv2.resize(img, dsize=size) for img in test_pred], 0
+    )  # resize to original shape
     # Now compute labels
-    test_pred = test_pred.reshape((-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE))
+    test_pred = test_pred.reshape(
+        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+    )
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
     log(f"Test predictions shape: {test_pred.shape}")
