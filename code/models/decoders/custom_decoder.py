@@ -23,17 +23,6 @@ class DecoderBlock(torch.nn.Module):
         self.conv2 = torch.nn.Conv2d(
             up_channels, up_channels, kernel_size=kernel_size)
         # self.dropout = torch.nn.Dropout(dropout)
-        FINAL_CHANNEL = 64
-        self.last_up = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(
-                FINAL_CHANNEL, FINAL_CHANNEL//2, kernel_size=2, stride=2),
-            torch.nn.Conv2d(
-                FINAL_CHANNEL//2, FINAL_CHANNEL//2, kernel_size=3, padding=1),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(
-                FINAL_CHANNEL//2, FINAL_CHANNEL//4, kernel_size=3, padding=1),
-            torch.nn.ReLU()
-        )
 
         # self.last_conv = torch.nn.Conv2d
         # self.last_layer_up = torch.nn.Sequential(
@@ -50,14 +39,6 @@ class DecoderBlock(torch.nn.Module):
             # when x is [batch, channels, 13, 13] to [batch, channels, 25, 25]
             # we have to crop it
             x = x[:, :, :-1, :-1]
-        elif x.shape[2] < skip.shape[2]:
-            # Finaly layer
-            # when x is [batch, channels, 100, 100] to [batch, channels, 400, 400]
-            x = self.last_up(x)
-            # print("after last_later_up", x.shape, flush=True)
-            # x = torch.cat([x, skip], dim=1)
-            # we return [batch, 6, 400, 400]
-            return x
 
         # print(x.shape, skip.shape, flush=True)
         x = torch.cat([x, skip], dim=1)
@@ -85,19 +66,42 @@ class Decoder(torch.nn.Module):
                     # dropout=0.0,
                 ).to(device)
             )
-        self.last_conv1 = torch.nn.Conv2d(16, 8, kernel_size=3, padding=1)
+        FINAL_CHANNEL = sizes[-1][-1]
+        self.last_conv1 = torch.nn.Conv2d(
+            FINAL_CHANNEL//4, FINAL_CHANNEL//8, kernel_size=3, padding=1)
         self.last_relu = torch.nn.ReLU()
-        self.last_conv2 = torch.nn.Conv2d(8, 4, kernel_size=3, padding=1)
+        self.last_conv2 = torch.nn.Conv2d(
+            FINAL_CHANNEL//16, FINAL_CHANNEL//32, kernel_size=3, padding=1)
+        self.last_upX4 = torch.nn.Sequential(
+            torch.nn.ConvTranspose2d(
+                FINAL_CHANNEL*2, FINAL_CHANNEL*2, kernel_size=2, stride=2),
+            torch.nn.ConvTranspose2d(
+                FINAL_CHANNEL*2, FINAL_CHANNEL, kernel_size=2, stride=2),
+        )
+        self.last_convs = torch.nn.Sequential(
+            torch.nn.Conv2d(
+                FINAL_CHANNEL + 3, FINAL_CHANNEL//2, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(
+                FINAL_CHANNEL//2, FINAL_CHANNEL//32, kernel_size=3, padding=1),
+            torch.nn.ReLU()
+        )
 
     def forward(self, x, skips):
-        for block, skip in zip(self.blocks, skips):
+        for block, skip in zip(self.blocks, skips[:-1]):
             # print("wow")
+            print(x.shape, skip.shape, flush=True)
             x = block(x, skip)
             # skip = x
         # x should be of size [batch, 6, 400, 400]
-        x = self.last_conv1(x)
-        x = self.last_relu(x)
-        x = self.last_conv2(x)
+        x = self.last_upX4(x)
+        # print(x.shape, skips[-1].shape)
+        x = torch.cat([x, skips[-1]], dim=1)
+        x = self.last_convs(x)
+        # print(x.shape)
+        # x = self.last_conv1(x)
+        # x = self.last_relu(x)
+        # x = self.last_conv2(x)
         # x is of size [batch, 1, 400, 400]
         # print("final output", x.shape)
         return x
