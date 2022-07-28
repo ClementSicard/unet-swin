@@ -30,7 +30,9 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(1, imgs_to_draw, figsize=(18.5, 6))
         for i in range(imgs_to_draw):
             axs[i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[i].set_title(f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}")
+            axs[i].set_title(
+                f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}"
+            )
             axs[i].set_axis_off()
     plt.show()
 
@@ -79,7 +81,9 @@ def train(
         """
         )
 
-    for epoch in range(checkpoint_epoch, n_epochs):  # loop over the dataset multiple times
+    for epoch in range(
+        checkpoint_epoch, n_epochs
+    ):  # loop over the dataset multiple times
 
         # Add real-time logs
         log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
@@ -122,8 +126,12 @@ def train(
             for k, fn in best_metric_fn.items():
                 metrics[k].append(fn(y_hat, y).item())
 
-            metrics_dict = {k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0}
-            metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(metrics[list(best_metric_fn.keys())[0]])
+            metrics_dict = {
+                k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
+            }
+            metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
+                metrics[list(best_metric_fn.keys())[0]]
+            )
             pbar.set_postfix(metrics_dict)
         if scheduler:
             scheduler.step()
@@ -146,7 +154,14 @@ def train(
 
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
-        log(" ".join(["\t- " + str(k) + " = " + str(v) + "\n " for (k, v) in history[epoch].items()]))
+        log(
+            " ".join(
+                [
+                    "\t- " + str(k) + " = " + str(v) + "\n "
+                    for (k, v) in history[epoch].items()
+                ]
+            )
+        )
         if interactive:
             show_val_samples(
                 x.detach().cpu().numpy(),

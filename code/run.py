@@ -92,6 +92,7 @@ if __name__ == "__main__":
     log(vars(args))
 
     device = get_best_available_device()
+
     log(f"PyTorch will use device: {device}")
     if device == "cuda":
         log(f"GPU used: {torch.cuda.get_device_name(0)}")
