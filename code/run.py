@@ -8,7 +8,7 @@ from torchvision import __version__
 log(f"Running torchvision {__version__}")
 
 try:
-    import models.swin_unet as swinunet
+    import models.swin_unet as swin_unet
 except Exception as e:
     log(e)
     log(f"Could not import swin_unet. Running on torchvision {__version__}")
@@ -20,8 +20,21 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet",
-                 "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
+    )
+    parser.add_argument(
+        "--model-type",
+        type=str,
+        help="Model to use for training Swin. Will be ignored otherwise",
+        choices=["small", "base"],
+        default="small"
+    )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        help="Loss to train with",
+        choices=["bce", "dice"],
+        default="bce",
     )
     parser.add_argument(
         "--train-dir",
@@ -111,13 +124,15 @@ if __name__ == "__main__":
         )
     elif args.model == "swin-unet":
         log("Running SWIN-UNet...")
-        swinunet.run(
+        swin_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
             test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
+            model_type=args.model_type,
+            loss=args.loss,
             # augment=args.no_augment,
             model_save_dir=args.model_save_dir,
         )

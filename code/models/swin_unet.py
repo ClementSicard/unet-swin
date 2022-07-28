@@ -6,6 +6,7 @@ from train import train
 from dataset import ImageDataset
 from PIL import Image
 import torch
+from .losses.dice_loss import BinaryDiceLoss
 from .encoders.swin_small import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
@@ -17,23 +18,27 @@ INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
 
 
 class SwinUnet(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, model_type: str = "small"):
+        assert model_type in {"small", "base"}
         super(SwinUnet, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.encoder = swin_pretrained_b().to(device)
+        if model_type == "small":
+            self.encoder = swin_pretrained_s().to(device)
+        else:
+            self.encoder = swin_pretrained_b().to(device)
         self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
         self.head = torch.nn.Sequential(
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
             torch.nn.Sigmoid(),
         )
-        self.prev_conv = torch.nn.Conv2d(
-            768, 768, kernel_size=3, padding=1, bias=False)
+        self.prev_conv = torch.nn.Conv2d(768, 768, kernel_size=3, padding=1, bias=False)
         self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
         # askip on preprocess les images
         x = self.encoder(x)
+        print(f"Shape of x: {x.shape}")
         x = self.prev_conv(x)
         self.encoder.x_int.reverse()
         # for int in self.encoder.x_int[1::]:
@@ -51,36 +56,35 @@ def run(
     train_path: str,
     val_path: str,
     test_path: str,
-    n_epochs=20,
-    batch_size=128,
-    model_save_dir=None,
-    checkpoint_path=None,
+    n_epochs: int = 20,
+    batch_size: int = 128,
+    model_save_dir: str = None,
+    checkpoint_path: str = None,
+    model_type: str = "small",
+    loss: str = "bce",
 ):
+    assert loss in {"bce", "dice"}
     log("Training Swin-Unet Baseline...")
-    device = (
-        "cuda" if torch.cuda.is_available() else "cpu"
-    )  # automatically select device
-    train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=True)
-    val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=True)
-    train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True
-    )
-    val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=True
-    )
-    model = SwinUnet().to(device)
+    device = "cuda" if torch.cuda.is_available() else "cpu"  # automatically select device
+    train_dataset = ImageDataset(train_path, device, use_patches=False, augment=True)
+    val_dataset = ImageDataset(val_path, device, use_patches=False, augment=True)
+    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    model = SwinUnet(model_type=model_type).to(device)
     # model.encoder.features.requires_grad_ = False
     # param.requires_grad = False
     # model.encoder.weight.requires_grad = False
     # exit()
-    loss_fn = torch.nn.BCELoss()
-    # loss_fn = BinaryDiceLoss()
+    if loss == "bce":
+        loss_fn = torch.nn.BCELoss()
+    elif loss == "dice":
+        loss_fn = BinaryDiceLoss()
+    else:
+        raise NotImplementedError(f"Loss {loss} is not implemented")
+
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=1e-3, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -117,19 +121,13 @@ def run(
         checkpoint = torch.load(best_weights_path)
         model.load_state_dict(checkpoint["model_state_dict"])
         log(f"Loaded best model weights ({best_weights_path})")
-        test_pred = [
-            model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
-        ]
+        test_pred = [model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))]
 
     test_pred = np.concatenate(test_pred, 0)
     test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-    test_pred = np.stack([img for img in test_pred],
-                         0)  # resize to original shape
+    test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
     # Now compute labels
-    test_pred = test_pred.reshape(
-        (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
-         size[0] // PATCH_SIZE, PATCH_SIZE)
-    )
+    test_pred = test_pred.reshape((-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE))
     test_pred = np.moveaxis(test_pred, 2, 3)
     test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
     log(f"Test predictions shape: {test_pred.shape}")
