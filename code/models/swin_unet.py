@@ -35,7 +35,7 @@ class SwinUnet(torch.nn.Module):
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
             self.prev_conv = torch.nn.Conv2d(
-                INFERED_SIZES[0][0], INFERED_SIZES[0][0], kernel_size=3, padding=1, bias=True)
+                INFERED_SIZES_B[0][0], INFERED_SIZES_B[0][0], kernel_size=3, padding=1, bias=True)
         self.head = torch.nn.Sequential(
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
             torch.nn.Sigmoid(),
@@ -46,7 +46,7 @@ class SwinUnet(torch.nn.Module):
     def forward(self, x):
         # askip on preprocess les images
         x = self.encoder(x)
-        print(f"Shape of x: {x.shape}")
+        # print(f"Shape of x: {x.shape}")
         x = self.prev_conv(x)
         self.encoder.x_int.reverse()
         # for int in self.encoder.x_int[1::]:

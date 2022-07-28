@@ -90,7 +90,7 @@ class Decoder(torch.nn.Module):
     def forward(self, x, skips):
         for block, skip in zip(self.blocks, skips[:-1]):
             # print("wow")
-            print(x.shape, skip.shape, flush=True)
+            # print(x.shape, skip.shape, flush=True)
             x = block(x, skip)
             # skip = x
         # x should be of size [batch, 6, 400, 400]

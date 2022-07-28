@@ -20,7 +20,8 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet",
+                 "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--model-type",
@@ -124,7 +125,7 @@ if __name__ == "__main__":
             loss=args.loss,
         )
     elif args.model == "swin-unet":
-        log("Running SWIN-UNet...")
+        log("Running SWIN-UNet-small...")
         swin_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -136,6 +137,8 @@ if __name__ == "__main__":
             loss=args.loss,
             # augment=args.no_augment,
             model_save_dir=args.model_save_dir,
+            # model_type="small"
         )
+
     else:
         raise NotImplementedError("Not implemented yet")
