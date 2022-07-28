@@ -27,13 +27,13 @@ if __name__ == "__main__":
         type=str,
         help="Model to use for training Swin. Will be ignored otherwise",
         choices=["small", "base"],
-        default="small"
+        default="small",
     )
     parser.add_argument(
         "--loss",
         type=str,
         help="Loss to train with",
-        choices=["bce", "dice"],
+        choices=["bce", "dice", "mix"],
         default="bce",
     )
     parser.add_argument(
@@ -121,6 +121,7 @@ if __name__ == "__main__":
             checkpoint_path=args.checkpoint_path,
             augment=args.no_augment,
             model_save_dir=args.model_save_dir,
+            loss=args.loss,
         )
     elif args.model == "swin-unet":
         log("Running SWIN-UNet...")

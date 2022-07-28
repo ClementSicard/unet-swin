@@ -7,7 +7,7 @@ from dataset import ImageDataset
 from PIL import Image
 import torch
 from .losses.dice_loss import BinaryDiceLoss
-from .encoders.swin_small import swin_pretrained_s, swin_pretrained_b
+from .encoders.swin import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
 
@@ -63,7 +63,7 @@ def run(
     model_type: str = "small",
     loss: str = "bce",
 ):
-    assert loss in {"bce", "dice"}
+    assert loss in {"bce", "dice", "mix"}
     log("Training Swin-Unet Baseline...")
     device = "cuda" if torch.cuda.is_available() else "cpu"  # automatically select device
     train_dataset = ImageDataset(train_path, device, use_patches=False, augment=True)
@@ -79,6 +79,8 @@ def run(
         loss_fn = torch.nn.BCELoss()
     elif loss == "dice":
         loss_fn = BinaryDiceLoss()
+    elif loss == "mix":
+        loss_fn = lambda y_hat, y: 0.4 * torch.nn.BCELoss()(y_hat, y) + 0.6 * BinaryDiceLoss()(y_hat, y)
     else:
         raise NotImplementedError(f"Loss {loss} is not implemented")
 
