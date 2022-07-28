@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import cv2
 from datetime import datetime
 from utils import *
 from train import train
@@ -179,14 +180,49 @@ def run(
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
 
-    os.makedirs("preds/segmentations", exist_ok=True)
     with torch.no_grad():
         checkpoint = torch.load(best_weights_path)
         model.load_state_dict(checkpoint["model_state_dict"])
         log(f"Loaded best model weights ({best_weights_path})")
-        test_pred = [
-            model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
-        ]
+
+        test_pred = []
+        CROP_SIZE = 200
+        RESIZE_SIZE = 208
+        for image in test_images:
+            cropped_image = [
+                image[0:CROP_SIZE, 0:CROP_SIZE, :],
+                image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+            ]
+
+            pred_cropped = [
+                model(cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE)))
+                .detach()
+                .cpu()
+                .numpy()
+                for c_img in cropped_image
+            ]
+
+            full_pred = np.zeros((3, 400, 400))
+
+            full_pred[0:CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
+                pred_cropped[0], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
+                pred_cropped[1], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :] = cv2.resize(
+                pred_cropped[2], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[
+                CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :
+            ] = cv2.resize(pred_cropped[3], dsize=(CROP_SIZE, CROP_SIZE))
+
+            test_pred.append(full_pred)
+
+        # test_pred = [model(t).detach().cpu().numpy()
+        #              for t in tqdm(test_images.unsqueeze(1))]
 
         test_pred = np.concatenate(test_pred, 0)
         test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
