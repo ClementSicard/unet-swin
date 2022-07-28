@@ -41,20 +41,23 @@ def image_to_patches(images, masks=None):
     # returns a 4D np.array with an ordered sequence of patches extracted from the image and (optionally) a np.array containing labels
     n_images = images.shape[0]  # number of images
     h, w = images.shape[1:3]  # shape of images
-    assert (h % PATCH_SIZE) + (w % PATCH_SIZE) == 0  # make sure images can be patched exactly
+    # make sure images can be patched exactly
+    assert (h % PATCH_SIZE) + (w % PATCH_SIZE) == 0
 
     images = images[:, :, :, :3]
 
     h_patches = h // PATCH_SIZE
     w_patches = w // PATCH_SIZE
 
-    patches = images.reshape((n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
+    patches = images.reshape(
+        (n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
     patches = np.moveaxis(patches, 2, 3)
     patches = patches.reshape(-1, PATCH_SIZE, PATCH_SIZE, 3)
     if masks is None:
         return patches
 
-    masks = masks.reshape((n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
+    masks = masks.reshape(
+        (n_images, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE, -1))
     masks = np.moveaxis(masks, 2, 3)
     labels = np.mean(masks, (-1, -2, -3)) > CUTOFF  # compute labels
     labels = labels.reshape(-1).astype(np.float32)
@@ -77,7 +80,8 @@ def show_patched_image(patches, labels, h_patches=25, w_patches=25):
     fig, axs = plt.subplots(h_patches, w_patches, figsize=(18.5, 18.5))
     for i, (p, l) in enumerate(zip(patches, labels)):
         # the np.maximum operation paints patches labeled as road red
-        axs[i // w_patches, i % w_patches].imshow(np.maximum(p, np.array([l.item(), 0.0, 0.0])))
+        axs[i // w_patches, i %
+            w_patches].imshow(np.maximum(p, np.array([l.item(), 0.0, 0.0])))
         axs[i // w_patches, i % w_patches].set_axis_off()
     plt.show()
 
@@ -136,6 +140,29 @@ def patch_accuracy_fn(y_hat, y):
     # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
     h_patches = y.shape[-2] // PATCH_SIZE
     w_patches = y.shape[-1] // PATCH_SIZE
-    patches_hat = y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3)) > CUTOFF
-    patches = y.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3)) > CUTOFF
+    patches_hat = y_hat.reshape(-1, 1, h_patches, PATCH_SIZE,
+                                w_patches, PATCH_SIZE).mean((-1, -3)) > CUTOFF
+    patches = y.reshape(-1, 1, h_patches, PATCH_SIZE,
+                        w_patches, PATCH_SIZE).mean((-1, -3)) > CUTOFF
     return (patches == patches_hat).float().mean()
+
+
+def crop_to_size(images, labels, size=208):
+    # TODO this function is not at all modular
+    print(images.shape, labels.shape)
+    n, h, w, c = images.shape
+    cropped_images = np.zeros((4*n, size, size, c), dtype=images.dtype)
+    cropped_labels = np.zeros((4*n, size, size),   dtype=labels.dtype)
+    for i, (image, label) in enumerate(zip(images, labels)):
+        cropped_images[i] = image[0:size, 0:size, :]
+        cropped_labels[i] = label[0:size, 0:size]
+
+        cropped_images[i+1] = image[0:size, w-size:, :]
+        cropped_labels[i+1] = label[0:size, w-size:]
+
+        cropped_images[i+2] = image[h-size:, 0:size:, :]
+        cropped_labels[i+2] = label[h-size:, 0:size]
+
+        cropped_images[i+3] = image[h-size:, w-size:, :]
+        cropped_labels[i+3] = label[h-size:, w-size:]
+    return cropped_images, cropped_labels

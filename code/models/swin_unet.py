@@ -45,7 +45,10 @@ class SwinUnet(torch.nn.Module):
 
     def forward(self, x):
         # askip on preprocess les images
+        # x = torch.nn.MaxPool2d((2, 2))(x)
+        # x = torch.nn.Conv2d(3, 3, kernel_size=7, padding=1, bias=True)(x)
         x = self.encoder(x)
+
         # print(f"Shape of x: {x.shape}")
         x = self.prev_conv(x)
         self.encoder.x_int.reverse()
@@ -76,9 +79,9 @@ def run(
     device = "cuda" if torch.cuda.is_available(
     ) else "cpu"  # automatically select device
     train_dataset = ImageDataset(
-        train_path, device, use_patches=False, augment=True)
+        train_path, device, use_patches=False, augment=True, crop=True, resize_to=(200, 200))
     val_dataset = ImageDataset(
-        val_path, device, use_patches=False, augment=True)
+        val_path, device, use_patches=False, augment=True, crop=True, resize_to=(200, 200))
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = torch.utils.data.DataLoader(

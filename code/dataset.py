@@ -15,6 +15,7 @@ class ImageDataset(torch.utils.data.Dataset):
         use_patches=True,
         augment=True,
         resize_to=(400, 400),
+        crop=False,
         verbose=False,
     ):
         self.path = path
@@ -23,6 +24,7 @@ class ImageDataset(torch.utils.data.Dataset):
         self.resize_to = resize_to
         self.x, self.y, self.n_samples = None, None, None
         self.augment = augment
+        self.crop = crop
         self.verbose = verbose
         self.N_TRANSFORMS = 6
         self._load_data()
@@ -31,13 +33,17 @@ class ImageDataset(torch.utils.data.Dataset):
         return super().__repr__()
 
     def _load_data(self):  # not very scalable, but good enough for now
-        self.x = load_all_from_path(os.path.join(self.path, "images"))[:, :, :, :3]
+        self.x = load_all_from_path(
+            os.path.join(self.path, "images"))[:, :, :, :3]
         self.y = load_all_from_path(os.path.join(self.path, "groundtruth"))
 
         if self.use_patches:  # split each image into patches
             self.x, self.y = image_to_patches(self.x, self.y)
 
-        elif self.resize_to != (self.x.shape[1], self.x.shape[2]):  # resize images
+        if self.crop:
+            self.x, self.y = crop_to_size(self.x, self.y)
+        # resize images
+        elif self.resize_to != (self.x.shape[1], self.x.shape[2]):
             self.x = np.stack(
                 [cv2.resize(img, dsize=self.resize_to) for img in self.x], 0
             )
@@ -91,11 +97,13 @@ class ImageDataset(torch.utils.data.Dataset):
 
         elif mod == 3:
             t_image = TF.rotate(image, angle=-90)
-            t_mask = TF.rotate(mask, angle=-90) if not self.use_patches else mask
+            t_mask = TF.rotate(
+                mask, angle=-90) if not self.use_patches else mask
 
         elif mod == 4:
             t_image = TF.rotate(image, angle=90)
-            t_mask = TF.rotate(mask, angle=90) if not self.use_patches else mask
+            t_mask = TF.rotate(
+                mask, angle=90) if not self.use_patches else mask
 
         elif mod == 5:
             resize_size = (
