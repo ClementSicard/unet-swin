@@ -18,10 +18,8 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate(
-                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate(
-                [np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -32,9 +30,7 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(1, imgs_to_draw, figsize=(18.5, 6))
         for i in range(imgs_to_draw):
             axs[i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[i].set_title(
-                f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}"
-            )
+            axs[i].set_title(f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}")
             axs[i].set_axis_off()
     plt.show()
 
@@ -83,12 +79,15 @@ def train(
         """
         )
 
-    for epoch in range(
-        checkpoint_epoch, n_epochs
-    ):  # loop over the dataset multiple times
+    for epoch in range(checkpoint_epoch, n_epochs):  # loop over the dataset multiple times
 
         # Add real-time logs
         log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
+
+        try:
+            log(f"GPU memory usage: {torch.cuda.mem_get_info(device='cuda')}")
+        except:
+            pass
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
@@ -107,6 +106,7 @@ def train(
             model.encoder.features.requires_grad_ = False
         except AttributeError:
             pass
+
         for (x, y) in pbar:
             optimizer.zero_grad()  # zero out gradients
             y_hat = model(x)  # forward pass
@@ -121,12 +121,9 @@ def train(
                 metrics[k].append(fn(y_hat, y).item())
             for k, fn in best_metric_fn.items():
                 metrics[k].append(fn(y_hat, y).item())
-            metrics_dict = {
-                k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
-            }
-            metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
-                metrics[list(best_metric_fn.keys())[0]]
-            )
+
+            metrics_dict = {k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0}
+            metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(metrics[list(best_metric_fn.keys())[0]])
             pbar.set_postfix(metrics_dict)
         if scheduler:
             scheduler.step()
@@ -149,14 +146,7 @@ def train(
 
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
-        log(
-            " ".join(
-                [
-                    "\t- " + str(k) + " = " + str(v) + "\n "
-                    for (k, v) in history[epoch].items()
-                ]
-            )
-        )
+        log(" ".join(["\t- " + str(k) + " = " + str(v) + "\n " for (k, v) in history[epoch].items()]))
         if interactive:
             show_val_samples(
                 x.detach().cpu().numpy(),
@@ -202,8 +192,7 @@ def train(
     log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"]
-             for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()

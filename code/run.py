@@ -1,17 +1,15 @@
 from utils import *
 import argparse
+from torchvision import __version__
+
 import models.baselines.baseline_svm_classifier as svc
 import models.baselines.baseline_patch_cnn as patch_cnn
 import models.baselines.baseline_vanilla_unet as vanilla_unet
-from torchvision import __version__
+import models.baselines.baseline_vanilla_unet as vanilla_unet
+import models.swin_unet as swin_unet
+import models.unet as unet
 
 log(f"Running torchvision {__version__}")
-
-try:
-    import models.swin_unet as swin_unet
-except Exception as e:
-    log(e)
-    log(f"Could not import swin_unet. Running on torchvision {__version__}")
 
 
 if __name__ == "__main__":
@@ -20,8 +18,13 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet",
-                 "baseline-patch-cnn", "swin-unet"],
+        choices=[
+            "baseline-svc",
+            "baseline-unet",
+            "baseline-patch-cnn",
+            "swin-unet",
+            "unet",
+        ],
     )
     parser.add_argument(
         "--model-type",
@@ -34,7 +37,7 @@ if __name__ == "__main__":
         "--loss",
         type=str,
         help="Loss to train with",
-        choices=["bce", "dice", "mix"],
+        choices=["bce", "dice", "focal", "mixed"],
         default="bce",
     )
     parser.add_argument(
@@ -51,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-augment",
         action="store_false",
+        default=True,
         help="The dataset will not be augmented",
     )
     parser.add_argument(
@@ -117,6 +121,16 @@ if __name__ == "__main__":
             train_path=args.train_dir,
             val_path=args.val_dir,
             test_path=args.test_dir,
+            checkpoint_path=args.checkpoint_path,
+            model_save_dir=args.model_save_dir,
+        )
+
+    elif args.model == "unet":
+        log("Running UNet...")
+        unet.run(
+            train_path=args.train_dir,
+            val_path=args.val_dir,
+            test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
@@ -124,8 +138,9 @@ if __name__ == "__main__":
             model_save_dir=args.model_save_dir,
             loss=args.loss,
         )
+
     elif args.model == "swin-unet":
-        log("Running SWIN-UNet-small...")
+        log("Running Swin-UNet...")
         swin_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -133,11 +148,10 @@ if __name__ == "__main__":
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
-            model_type=args.model_type,
             loss=args.loss,
-            # augment=args.no_augment,
+            augment=args.no_augment,
             model_save_dir=args.model_save_dir,
-            # model_type="small"
+            model_type=args.model_type,
         )
 
     else:
