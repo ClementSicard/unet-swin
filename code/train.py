@@ -116,6 +116,7 @@ def train(
 
             # log partial metrics
             metrics["loss"].append(loss.item())
+            # print(x.shape, y.shape, y_hat.shape)
             for k, fn in metric_fns.items():
                 metrics[k].append(fn(y_hat, y).item())
             for k, fn in best_metric_fn.items():
