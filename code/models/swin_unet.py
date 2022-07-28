@@ -23,10 +23,10 @@ INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
 INFERED_SIZES_B = [(1024, 512), (512, 256), (256, 128), (128, 64)]
 
 
-class SwinUnet(torch.nn.Module):
+class SwinUNet(torch.nn.Module):
     def __init__(self, model_type: str = "small"):
         assert model_type in {"small", "base"}
-        super(SwinUnet, self).__init__()
+        super(SwinUNet, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if model_type == "small":
@@ -118,7 +118,7 @@ def run(
         batch_size=batch_size,
         shuffle=True,
     )
-    model = SwinUnet(model_type=model_type).to(device)
+    model = SwinUNet(model_type=model_type).to(device)
 
     # model.encoder.features.requires_grad_ = False
     # param.requires_grad = False
