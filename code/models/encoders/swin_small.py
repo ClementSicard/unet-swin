@@ -1,3 +1,4 @@
+from torch import dropout
 from torchvision.models import swin_s, Swin_S_Weights, SwinTransformer, Swin_B_Weights
 from typing import List, Optional, Union, Any, Dict
 from torchvision.models._api import WeightsEnum
@@ -55,6 +56,7 @@ def _swin_transformer(
         stochastic_depth_prob=stochastic_depth_prob,
         **kwargs,
     )
+    # print(model.attention_dropout)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))

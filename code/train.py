@@ -18,8 +18,10 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate(
+                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate(
+                [np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -47,6 +49,7 @@ def train(
     optimizer,
     n_epochs,
     model_name,
+    scheduler=None,
     save_state=True,
     checkpoint_path=None,
     model_save_path=None,
@@ -99,6 +102,11 @@ def train(
         pbar = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{n_epochs}")
         # training
         model.train()
+        # TODO to remove only works for swin, to actually freeze the encoder
+        try:
+            model.encoder.features.requires_grad_ = False
+        except AttributeError:
+            pass
         for (x, y) in pbar:
             optimizer.zero_grad()  # zero out gradients
             y_hat = model(x)  # forward pass
@@ -119,7 +127,8 @@ def train(
                 metrics[list(best_metric_fn.keys())[0]]
             )
             pbar.set_postfix(metrics_dict)
-
+        if scheduler:
+            scheduler.step()
         # validation
         model.eval()
         with torch.no_grad():  # do not keep track of gradients
@@ -192,7 +201,8 @@ def train(
     log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"]
+             for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()

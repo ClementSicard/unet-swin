@@ -9,11 +9,14 @@ import torch
 from .encoders.swin_small import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
+from .losses.dice_loss import BinaryDiceLoss
+from .losses.focal_loss import FocalLoss
 
 sys.path.append("..")
 
 
 INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
+INFERED_SIZES_B = [(1024, 512), (512, 256), (256, 128), (128, 64)]
 
 
 class SwinUnet(torch.nn.Module):
@@ -22,14 +25,14 @@ class SwinUnet(torch.nn.Module):
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.encoder = swin_pretrained_b().to(device)
-        self.decoder = Decoder(sizes=INFERED_SIZES).to(device)
+        self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
         self.head = torch.nn.Sequential(
             torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
             torch.nn.Sigmoid(),
         )
         self.prev_conv = torch.nn.Conv2d(
-            768, 768, kernel_size=3, padding=1, bias=False)
-        self.fully_connected = torch.nn.Linear(16 * 16, 1)
+            INFERED_SIZES_B[0][0], INFERED_SIZES_B[0][0], kernel_size=3, padding=1, bias=False)
+        # self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
         # askip on preprocess les images
@@ -76,11 +79,16 @@ def run(
     # model.encoder.weight.requires_grad = False
     # exit()
     loss_fn = torch.nn.BCELoss()
-    # loss_fn = BinaryDiceLoss()
+    loss_fn = BinaryDiceLoss()
+    loss_fn = FocalLoss()
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(
-        model.parameters(), lr=1e-3, weight_decay=1e-5)
+    # Observe that all parameters are being optimized
+    optimizer_ft = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer_ft, step_size=7, gamma=0.1)
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -89,7 +97,8 @@ def run(
         loss_fn=loss_fn,
         metric_fns=metric_fns,
         best_metric_fn=best_metric_fns,
-        optimizer=optimizer,
+        optimizer=optimizer_ft,
+        scheduler=exp_lr_scheduler,
         n_epochs=n_epochs,
         checkpoint_path=checkpoint_path,
         save_state=True,

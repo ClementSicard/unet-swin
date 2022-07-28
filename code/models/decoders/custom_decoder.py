@@ -9,7 +9,7 @@ class DecoderBlock(torch.nn.Module):
         kernel_size_up,
         stride_up,
         kernel_size,
-        dropout=0.0,
+        # dropout=0.0,
     ):
         super(DecoderBlock, self).__init__()
 
@@ -18,19 +18,20 @@ class DecoderBlock(torch.nn.Module):
         )
 
         self.conv1 = torch.nn.Conv2d(
-            down_channels, up_channels, kernel_size=kernel_size, padding=2
+            down_channels, up_channels, kernel_size=kernel_size, padding=1
         )
         self.conv2 = torch.nn.Conv2d(
             up_channels, up_channels, kernel_size=kernel_size)
-        self.dropout = torch.nn.Dropout(dropout)
+        # self.dropout = torch.nn.Dropout(dropout)
+        FINAL_CHANNEL = 64
         self.last_up = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
-                48, 24, kernel_size=2, stride=2),
+                FINAL_CHANNEL, FINAL_CHANNEL//2, kernel_size=2, stride=2),
             torch.nn.Conv2d(
-                24, 24, kernel_size=3, padding=1),
+                FINAL_CHANNEL//2, FINAL_CHANNEL//2, kernel_size=3, padding=1),
             torch.nn.ReLU(),
             torch.nn.Conv2d(
-                24, 12, kernel_size=3, padding=1),
+                FINAL_CHANNEL//2, FINAL_CHANNEL//4, kernel_size=3, padding=1),
             torch.nn.ReLU()
         )
 
@@ -58,11 +59,13 @@ class DecoderBlock(torch.nn.Module):
             # we return [batch, 6, 400, 400]
             return x
 
+        # print(x.shape, skip.shape, flush=True)
         x = torch.cat([x, skip], dim=1)
         # print(x.shape, skip.shape, flush=True)
         x = torch.nn.functional.relu(self.conv1(x))
-        x = self.dropout(x)
-        x = torch.nn.functional.relu(self.conv2(x))
+        # print(x.shape)
+        # x = self.dropout(x)
+        # x = torch.nn.functional.relu(self.conv2(x))
         return x
 
 
@@ -79,12 +82,12 @@ class Decoder(torch.nn.Module):
                     kernel_size_up=2,
                     stride_up=2,
                     kernel_size=3,
-                    dropout=0.0,
+                    # dropout=0.0,
                 ).to(device)
             )
-        self.last_conv1 = torch.nn.Conv2d(12, 6, kernel_size=3, padding=1)
+        self.last_conv1 = torch.nn.Conv2d(16, 8, kernel_size=3, padding=1)
         self.last_relu = torch.nn.ReLU()
-        self.last_conv2 = torch.nn.Conv2d(6, 3, kernel_size=3, padding=1)
+        self.last_conv2 = torch.nn.Conv2d(8, 4, kernel_size=3, padding=1)
 
     def forward(self, x, skips):
         for block, skip in zip(self.blocks, skips):

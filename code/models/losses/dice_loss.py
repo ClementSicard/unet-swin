@@ -29,15 +29,19 @@ class BinaryDiceLoss(nn.Module):
             predict.shape[0] == target.shape[0]
         ), "predict & target batch size don't match"
 
-        predict = torch.sigmoid(predict)
-        predict = torch.flatten(predict)
+        # predict = torch.sigmoid(predict) We don't need it as we are sigmoiding it in the loss
+        predict = torch.flatten(predict.round())
         target = torch.flatten(target)
-
         intersection = (predict * target).sum()
+        # print(predict.shape, predict.sum(),
+        #       target.shape, target.sum(), intersection, flush=True)
+        # exit()
+
         A_sum = torch.sum(predict)
         B_sum = torch.sum(target)
 
-        loss = 1 - ((2.0 * intersection + self.smooth) / (A_sum + B_sum + self.smooth))
+        loss = 1 - ((2.0 * intersection + self.smooth) /
+                    (A_sum + B_sum + self.smooth))
 
         if self.reduction == "mean":
             return loss.mean()
