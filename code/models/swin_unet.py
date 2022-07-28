@@ -146,8 +146,7 @@ def run(
         raise NotImplementedError(f"Loss {loss} is not implemented")
 
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
-    best_metric_fns = {"patch_acc": patch_accuracy_fn}
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    best_metric_fns = {"patch_f1_score": patch_f1_score_fn}
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
