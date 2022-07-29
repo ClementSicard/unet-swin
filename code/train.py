@@ -171,11 +171,8 @@ def train(
         for k, v in history[epoch].items():
             writer.add_scalar(k, v, epoch)
         log(
-            " ".join(
-                [
-                    "\t- " + str(k) + " = " + str(v) + "\n "
-                    for (k, v) in history[epoch].items()
-                ]
+            "\n".join(
+                ["\t- " + str(k) + " = " + str(v) for (k, v) in history[epoch].items()]
             )
         )
         if interactive:

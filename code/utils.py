@@ -85,7 +85,7 @@ def log(message: str, print_message=True):
     # If OS is not Windows
     if not os.name == "nt":
         t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        to_write = f"[{t}]\t{message}\n"
+        to_write = f"[{t}]\t{message}"
         command = (
             f'TAG=$(git rev-parse --short HEAD);echo "{to_write}" >> logs/$TAG.log'
         )
