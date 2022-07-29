@@ -122,14 +122,14 @@ def run(
     train_dataset = OptimizedImageDataset(
         train_path,
         device,
-        augment=False,
+        augment=True,
         crop=True,
         crop_size=208,
     )
     val_dataset = OptimizedImageDataset(
         val_path,
         device,
-        augment=False,
+        augment=True,
         crop=True,
         crop_size=208,
     )
@@ -219,9 +219,9 @@ def run(
         for image in test_images:
             cropped_image = [
                 image[0:CROP_SIZE, 0:CROP_SIZE, :],
-                image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
-                image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
-                image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                image[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                image[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
+                image[CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
             ]
 
             pred_cropped = [
@@ -237,14 +237,14 @@ def run(
             full_pred[0:CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
                 pred_cropped[0], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
+            full_pred[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
                 pred_cropped[1], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :] = cv2.resize(
+            full_pred[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :] = cv2.resize(
                 pred_cropped[2], dsize=(CROP_SIZE, CROP_SIZE)
             )
             full_pred[
-                CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :
+                CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :
             ] = cv2.resize(pred_cropped[3], dsize=(CROP_SIZE, CROP_SIZE))
 
             test_pred.append(full_pred)
@@ -254,10 +254,12 @@ def run(
 
         test_pred = np.concatenate(test_pred, 0)
         test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-        test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
+        test_pred = np.stack([img for img in test_pred],
+                             0)  # resize to original shape
         # Now compute labels
         test_pred = test_pred.reshape(
-            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+            (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
+             size[0] // PATCH_SIZE, PATCH_SIZE)
         )
         test_pred = np.moveaxis(test_pred, 2, 3)
         test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
