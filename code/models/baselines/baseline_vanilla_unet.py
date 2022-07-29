@@ -1,8 +1,9 @@
 from datetime import datetime
 from train import train
-from dataset import ImageDataset
+from dataset import ImageDataset, OptimizedImageDataset
 from utils import *
 from ..losses.dice_loss import BinaryDiceLoss
+from ..losses.focal_loss import FocalLoss
 from torch import nn
 import torch
 import sys
@@ -89,17 +90,15 @@ def run(
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # reshape the image to simplify the handling of skip connections and maxpooling
-    train_dataset = ImageDataset(
-        train_path,
-        device,
-        use_patches=False,
+    train_dataset = OptimizedImageDataset(
+        path=train_path,
+        device=device,
         resize_to=(384, 384),
         augment=augment,
     )
-    val_dataset = ImageDataset(
-        val_path,
-        device,
-        use_patches=False,
+    val_dataset = OptimizedImageDataset(
+        path=val_path,
+        device=device,
         resize_to=(384, 384),
         augment=augment,
     )
@@ -109,6 +108,7 @@ def run(
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset, batch_size=batch_size, shuffle=True
     )
+
     model = UNet().to(device)
     if loss == "bce":
         loss_fn = nn.BCELoss()
@@ -118,6 +118,8 @@ def run(
         loss_fn = lambda y_hat, y: 0.4 * torch.nn.BCELoss()(
             y_hat, y
         ) + 0.6 * BinaryDiceLoss()(y_hat, y)
+    elif loss == "focal":
+        loss_fn = FocalLoss()
     best_metric_fn = {"patch_f1": patch_f1_score_fn}
     metric_fns = {
         "acc": accuracy_fn,
