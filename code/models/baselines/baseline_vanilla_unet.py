@@ -11,6 +11,7 @@ import numpy as np
 import cv2
 from torchmetrics import F1Score
 from torch.utils.data.dataloader import default_collate
+from torch.utils.data import DataLoader
 
 
 sys.path.append("..")
@@ -101,8 +102,16 @@ def run(
         type_="training",
         augment=augment,
     )
-    log("After loading image dataset")
+    log(f"After loading image dataset on {train_dataset.device}")
     display_gpu_usage()
+
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4,
+        collate_fn=lambda x: default_collate(x).to(device),
+    )
 
     val_dataset = OptimizedImageDataset(
         path=val_path,
@@ -113,20 +122,14 @@ def run(
         type_="validation",
         augment=augment,
     )
+    log(f"After loading image dataset on {val_dataset.device}")
     display_gpu_usage()
 
-    train_dataloader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        n_workers=8,
-        collate_fn=lambda x: default_collate(x).to(device),
-    )
-    val_dataloader = torch.utils.data.DataLoader(
+    val_dataloader = DataLoader(
         val_dataset,
         batch_size=batch_size,
         shuffle=True,
-        n_workers=8,
+        num_workers=4,
         collate_fn=lambda x: default_collate(x).to(device),
     )
 
