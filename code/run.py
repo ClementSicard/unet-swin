@@ -20,8 +20,7 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet",
-                 "baseline-patch-cnn", "swin-unet"],
+        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
     )
     parser.add_argument(
         "--model-type",
@@ -34,7 +33,7 @@ if __name__ == "__main__":
         "--loss",
         type=str,
         help="Loss to train with",
-        choices=["bce", "dice", "mix"],
+        choices=["bce", "dice", "mix", "focal"],
         default="bce",
     )
     parser.add_argument(
