@@ -118,8 +118,12 @@ def run(
         loss_fn = lambda y_hat, y: 0.4 * torch.nn.BCELoss()(
             y_hat, y
         ) + 0.6 * BinaryDiceLoss()(y_hat, y)
-    best_metric_fn = {"patch_acc": patch_accuracy_fn}
-    metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
+    best_metric_fn = {"patch_f1": patch_f1_score_fn}
+    metric_fns = {
+        "acc": accuracy_fn,
+        "patch_acc": patch_accuracy_fn,
+        "patch_f1": patch_f1_score_fn,
+    }
     optimizer = torch.optim.Adam(model.parameters())
 
     best_weights_path = train(
