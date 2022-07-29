@@ -102,8 +102,8 @@ def accuracy_fn(y_hat, y):
 def _f1_score_fn(y_hat, y):
     with torch.no_grad():
         return f1_score(
-            y_true=y.flatten().numpy(),
-            y_pred=y_hat.flatten().numpy(),
+            y_true=y.flatten().cpu().numpy(),
+            y_pred=y_hat.flatten().cpu().numpy(),
         )
 
 
