@@ -135,9 +135,7 @@ def train(
             }
             metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
             metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
-            log(
-                f"\tStep: {counter}\tMax true: {metrics_dict['max_true']}\tMax pred: {metrics_dict['max_pred']}"
-            )
+
             metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
                 metrics[list(best_metric_fn.keys())[0]]
             )
