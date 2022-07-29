@@ -100,14 +100,7 @@ def train(
         # Add real-time logs
         log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
 
-        try:
-            used, available = torch.cuda.mem_get_info()
-            log(
-                f"GPU memory used: {used / 1024 / 1024:.2f} MB\tGPU memory available: {available / 1024 / 1024:.2f} MB"
-            )
-
-        except Exception as e:
-            log(f"Error when getting GPU info: {e}")
+        display_gpu_usage()
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}

@@ -99,6 +99,8 @@ def run(
         type_="training",
         augment=augment,
     )
+    display_gpu_usage()
+
     val_dataset = OptimizedImageDataset(
         path=val_path,
         device=device,
@@ -108,12 +110,16 @@ def run(
         type_="validation",
         augment=augment,
     )
+    display_gpu_usage()
+
     train_dataloader = torch.utils.data.DataLoader(
         train_dataset, batch_size=batch_size, shuffle=True
     )
     val_dataloader = torch.utils.data.DataLoader(
         val_dataset, batch_size=batch_size, shuffle=True
     )
+
+    display_gpu_usage()
 
     model = UNet().to(device)
     if loss == "bce":

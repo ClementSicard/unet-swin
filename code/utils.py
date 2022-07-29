@@ -26,6 +26,17 @@ def load_all_from_path(path: str):
     )
 
 
+def display_gpu_usage():
+    try:
+        used, available = torch.cuda.mem_get_info()
+        log(
+            f"GPU memory used: {used / 1024 / 1024:.2f} MB\tGPU memory available: {available / 1024 / 1024:.2f} MB"
+        )
+
+    except Exception as e:
+        log(f"Error when getting GPU info: {e}")
+
+
 def show_first_n(imgs, masks, n=5):
     # visualizes the first n elements of a series of images and segmentation masks
     imgs_to_draw = min(n, len(imgs))
