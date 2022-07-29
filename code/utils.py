@@ -213,7 +213,6 @@ def crop_to_size(images, labels, size=208):
 
 
 def crop_to_size_with_crop_index(image, label, index, size=208):
-    # TODO this function is not at all modular
     _, h, w = image.shape
 
     if index == 0:

@@ -93,14 +93,18 @@ def run(
     train_dataset = OptimizedImageDataset(
         path=train_path,
         device=device,
-        resize_to=(384, 384),
+        # resize_to=(384, 384),
+        crop_size=384,
+        crop=True,
         type_="training",
         augment=augment,
     )
     val_dataset = OptimizedImageDataset(
         path=val_path,
         device=device,
-        resize_to=(384, 384),
+        # resize_to=(384, 384),
+        crop_size=384,
+        crop=True,
         type_="validation",
         augment=augment,
     )
