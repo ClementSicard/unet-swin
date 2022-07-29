@@ -5,7 +5,7 @@ N_EPOCHS=30
 BATCH_SIZE=8
 
 echo "1st run"
-python code/run.py unet \
+python code/run.py swin-unet \
     --train-dir "data/training" \
     --test-dir "data/test" \
     --val-dir "data/validation" \
