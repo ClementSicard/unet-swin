@@ -11,7 +11,7 @@ from subprocess import Popen
 pjoin = os.path.join
 
 
-def show_val_samples(x, y, y_hat, segmentation=False):
+def show_val_samples(x, y, y_hat, path):
     # training callback to show predictions on validation set
     imgs_to_draw = min(5, len(x))
     if x.shape[-2:] == y.shape[-2:]:  # segmentation
@@ -34,7 +34,8 @@ def show_val_samples(x, y, y_hat, segmentation=False):
                 f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}"
             )
             axs[i].set_axis_off()
-    plt.show()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path)
 
 
 def train(
@@ -111,13 +112,13 @@ def train(
         except AttributeError:
             pass
 
+        counter = 0
         for (x, y) in pbar:
             optimizer.zero_grad()  # zero out gradients
             y_hat = model(x)  # forward pass
             loss = loss_fn(y_hat, y)
             loss.backward()  # backward pass
             optimizer.step()  # optimize weights
-
             # log partial metrics
             metrics["loss"].append(loss.item())
             # print(x.shape, y.shape, y_hat.shape)
@@ -129,10 +130,19 @@ def train(
             metrics_dict = {
                 k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
             }
+            # metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
+            # metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
             metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
                 metrics[list(best_metric_fn.keys())[0]]
             )
             pbar.set_postfix(metrics_dict)
+            counter += 1
+        show_val_samples(
+            x.detach().cpu().numpy(),
+            y.detach().cpu().numpy(),
+            y_hat.detach().cpu().numpy(),
+            path=f"./logs/epoch_{epoch}.png",
+        )
         if scheduler:
             scheduler.step()
         # validation
@@ -140,6 +150,7 @@ def train(
         with torch.no_grad():  # do not keep track of gradients
             for (x, y) in eval_dataloader:
                 y_hat = model(x)  # forward pass
+
                 loss = loss_fn(y_hat, y)
 
                 # log partial metrics

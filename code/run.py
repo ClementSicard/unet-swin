@@ -150,7 +150,6 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
             loss=args.loss,
-            augment=args.no_augment,
             model_save_dir=args.model_save_dir,
             model_type=args.model_type,
         )
