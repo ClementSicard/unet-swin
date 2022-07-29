@@ -65,6 +65,9 @@ def train(
 
     best_metric_fn_val = 0.0
     checkpoint_epoch = 0
+    log(f"Used loss: {loss_fn}")
+    log(f"Used metrics: {metric_fns}")
+    log(f"Used best metrics: {best_metric_fn}")
 
     if checkpoint_path:
         checkpoint = torch.load(checkpoint_path)
@@ -133,7 +136,7 @@ def train(
             metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
             metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
             log(
-                f"Epoch: {epoch}, Step: {counter}, Max true: {metrics_dict['max_true']}, Max pred: {metrics_dict['max_pred']}"
+                f"\tStep: {counter}\tMax true: {metrics_dict['max_true']}\tMax pred: {metrics_dict['max_pred']}"
             )
             metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
                 metrics[list(best_metric_fn.keys())[0]]
