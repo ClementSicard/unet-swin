@@ -3,15 +3,11 @@ import argparse
 import models.baselines.baseline_svm_classifier as svc
 import models.baselines.baseline_patch_cnn as patch_cnn
 import models.baselines.baseline_vanilla_unet as vanilla_unet
+import models.swin_unet as swin_unet
+import models.unet as unet
 from torchvision import __version__
 
 log(f"Running torchvision {__version__}")
-
-try:
-    import models.swin_unet as swin_unet
-except Exception as e:
-    log(e)
-    log(f"Could not import swin_unet. Running on torchvision {__version__}")
 
 
 if __name__ == "__main__":
@@ -24,6 +20,7 @@ if __name__ == "__main__":
             "baseline-svc",
             "baseline-unet",
             "baseline-patch-cnn",
+            "unet",
             "swin-unet",
         ],
     )
@@ -127,6 +124,16 @@ if __name__ == "__main__":
             train_path=args.train_dir,
             val_path=args.val_dir,
             test_path=args.test_dir,
+            checkpoint_path=args.checkpoint_path,
+            model_save_dir=args.model_save_dir,
+        )
+
+    elif args.model == "unet":
+        log("Running custom Vanilla-UNet...")
+        unet.run(
+            train_path=args.train_dir,
+            val_path=args.val_dir,
+            test_path=args.test_dir,
             n_epochs=args.n_epochs,
             batch_size=args.batch_size,
             checkpoint_path=args.checkpoint_path,
@@ -134,6 +141,7 @@ if __name__ == "__main__":
             model_save_dir=args.model_save_dir,
             loss=args.loss,
         )
+
     elif args.model == "swin-unet":
         log(f"Running Swin-{args.model_type.capitalize()}-UNet...")
         swin_unet.run(
