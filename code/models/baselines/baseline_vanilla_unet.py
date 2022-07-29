@@ -113,10 +113,10 @@ def run(
     display_gpu_usage()
 
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True
+        train_dataset, batch_size=batch_size, shuffle=True, n_workers=8
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=True
+        val_dataset, batch_size=batch_size, shuffle=True, n_workers=8
     )
 
     display_gpu_usage()
