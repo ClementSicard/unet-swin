@@ -10,6 +10,8 @@ import sys
 import numpy as np
 import cv2
 from torchmetrics import F1Score
+from torch.utils.data.dataloader import default_collate
+
 
 sys.path.append("..")
 
@@ -92,18 +94,19 @@ def run(
     # reshape the image to simplify the handling of skip connections and maxpooling
     train_dataset = OptimizedImageDataset(
         path=train_path,
-        device=device,
+        device="cpu",
         # resize_to=(384, 384),
         crop_size=384,
         crop=True,
         type_="training",
         augment=augment,
     )
+    log("After loading image dataset")
     display_gpu_usage()
 
     val_dataset = OptimizedImageDataset(
         path=val_path,
-        device=device,
+        device="cpu",
         # resize_to=(384, 384),
         crop_size=384,
         crop=True,
@@ -113,10 +116,18 @@ def run(
     display_gpu_usage()
 
     train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True, n_workers=8
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        n_workers=8,
+        collate_fn=lambda x: default_collate(x).to(device),
     )
     val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=True, n_workers=8
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        n_workers=8,
+        collate_fn=lambda x: default_collate(x).to(device),
     )
 
     display_gpu_usage()
