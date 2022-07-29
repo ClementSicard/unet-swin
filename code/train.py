@@ -53,7 +53,7 @@ def train(
     save_state=True,
     checkpoint_path=None,
     model_save_path=None,
-    interactive=False,
+    interactive=True,
 ):
     """
     Returns the path to the best model
