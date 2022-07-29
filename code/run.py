@@ -33,7 +33,7 @@ if __name__ == "__main__":
         "--loss",
         type=str,
         help="Loss to train with",
-        choices=["bce", "dice", "mix", "focal"],
+        choices=["bce", "dice", "mixed", "focal"],
         default="bce",
     )
     parser.add_argument(

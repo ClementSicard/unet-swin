@@ -85,7 +85,7 @@ def run(
     model_type: str = "small",
     loss: str = "bce",
 ):
-    assert loss in {"bce", "dice", "mix", "focal"}
+    assert loss in {"bce", "dice", "mixed", "focal"}
     log("Training Swin-UNet...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -132,7 +132,7 @@ def run(
         loss_fn = torch.nn.BCELoss()
     elif loss == "dice":
         loss_fn = BinaryDiceLoss()
-    elif loss == "mix":
+    elif loss == "mixed":
 
         def loss_fn(y_hat, y):
             return 0.4 * torch.nn.BCELoss()(y_hat, y) + 0.6 * BinaryDiceLoss()(y_hat, y)
