@@ -12,7 +12,7 @@ from subprocess import Popen
 pjoin = os.path.join
 
 
-def show_val_samples(x, y, y_hat, train: bool = False):
+def show_val_samples(x, y, y_hat, model_save_path: str, train: bool = False):
     # training callback to show predictions on validation set
     imgs_to_draw = min(5, len(x))
     if x.shape[-2:] == y.shape[-2:]:  # segmentation
@@ -36,7 +36,12 @@ def show_val_samples(x, y, y_hat, train: bool = False):
             )
             axs[i].set_axis_off()
     plt.savefig(
-        f"{'train' if train else 'val'}_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png"
+        pjoin(
+            model_save_path,
+            "images",
+            "swin-unet",
+            f"{'train' if train else 'val'}_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png",
+        )
     )
     plt.close()
 
@@ -145,6 +150,7 @@ def train(
                 y.detach().cpu().numpy(),
                 y_hat.detach().cpu().numpy(),
                 train=True,
+                model_save_path=model_save_path,
             )
         if scheduler:
             scheduler.step()
@@ -180,6 +186,7 @@ def train(
                 x.detach().cpu().numpy(),
                 y.detach().cpu().numpy(),
                 y_hat.detach().cpu().numpy(),
+                model_save_path=model_save_path,
             )
 
         best_metric_key = f"val_{list(best_metric_fn.keys())[0]}"
