@@ -154,6 +154,7 @@ def train(
                 y_hat.detach().cpu().numpy(),
                 train=True,
                 model_save_path=model_save_path,
+                model_name=model_name,
             )
         if scheduler:
             scheduler.step()
@@ -190,6 +191,7 @@ def train(
                 y.detach().cpu().numpy(),
                 y_hat.detach().cpu().numpy(),
                 model_save_path=model_save_path,
+                model_name=model_name,
             )
 
         best_metric_key = f"val_{list(best_metric_fn.keys())[0]}"
