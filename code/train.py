@@ -130,8 +130,11 @@ def train(
             metrics_dict = {
                 k: sum(v) / len(v) for k, v in metrics.items() if len(v) > 0
             }
-            # metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
-            # metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
+            metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
+            metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
+            print(
+                f"Epoch: {epoch}, Step: {counter}, Max true: {metrics_dict['max_true']}, Max pred: {metrics_dict['max_pred']}"
+            )
             metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
                 metrics[list(best_metric_fn.keys())[0]]
             )
