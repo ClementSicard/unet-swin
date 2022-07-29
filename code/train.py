@@ -1,4 +1,5 @@
 from datetime import datetime
+from matplotlib.style import available
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
@@ -18,10 +19,8 @@ def show_val_samples(x, y, y_hat, segmentation=False):
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate(
-                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate(
-                [np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -89,6 +88,15 @@ def train(
 
         # Add real-time logs
         log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
+
+        try:
+            used, available = torch.cuda.mem_get_info()
+            log(
+                f"GPU memory used: {used / 1024 / 1024:.2f} MB\tGPU memory available: {available / 1024 / 1024:.2f} MB"
+            )
+
+        except Exception as e:
+            log(f"Error when getting GPU info: {e}")
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
@@ -202,8 +210,7 @@ def train(
     log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"]
-             for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()
