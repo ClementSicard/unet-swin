@@ -94,12 +94,14 @@ def run(
         path=train_path,
         device=device,
         resize_to=(384, 384),
+        type_="training",
         augment=augment,
     )
     val_dataset = OptimizedImageDataset(
         path=val_path,
         device=device,
         resize_to=(384, 384),
+        type_="validation",
         augment=augment,
     )
     train_dataloader = torch.utils.data.DataLoader(

@@ -165,6 +165,7 @@ class OptimizedImageDataset(torch.utils.data.Dataset):
         self,
         path,
         device,
+        type_="training",
         augment=False,
         crop=False,
         resize_to=None,
@@ -172,7 +173,13 @@ class OptimizedImageDataset(torch.utils.data.Dataset):
         verbose=False,
     ):
         if crop and not crop_size:
+            print("Crop size not set, default to 208")
             crop_size = 208
+
+        if crop_size:
+            assert isinstance(
+                crop_size, int
+            ), f"crop_size should be an int to define size = (crop_size, crop_size), but is {type_(crop_size)}"
 
         self.path = path
         self.device = device
@@ -181,9 +188,20 @@ class OptimizedImageDataset(torch.utils.data.Dataset):
         self.augment = augment
         self.crop = crop
         self.crop_size = crop_size
+        self.type = type_
         self.verbose = verbose
         self.N_TRANSFORMS = 6
         self._load_data()
+
+        s = f"""
+        {self.type.upper()} dataset, with:
+        - {'TRANSFORMED' if self.augment else 'REGULAR'} dataset
+        - {f'CROPPED TO {self.crop_size}' if self.crop else 'UNCROPPED'} dataset
+        - {f'RESIZED TO {self.resize_to}' if self.resize_to else 'UNRESIZED'} dataset
+        - {len(self)} SAMPLES in total
+        """
+
+        log(s)
 
     def __repr__(self) -> str:
         return super().__repr__()
