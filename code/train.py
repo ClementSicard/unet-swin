@@ -1,4 +1,5 @@
 from datetime import datetime
+from pyexpat import model
 from matplotlib.style import available
 import torch
 from torch import nn
@@ -12,7 +13,9 @@ from subprocess import Popen
 pjoin = os.path.join
 
 
-def show_val_samples(x, y, y_hat, model_save_path: str, train: bool = False):
+def show_val_samples(
+    x, y, y_hat, model_save_path: str, model_name: str, train: bool = False
+):
     # training callback to show predictions on validation set
     imgs_to_draw = min(5, len(x))
     if x.shape[-2:] == y.shape[-2:]:  # segmentation
@@ -35,14 +38,14 @@ def show_val_samples(x, y, y_hat, model_save_path: str, train: bool = False):
                 f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}"
             )
             axs[i].set_axis_off()
-    plt.savefig(
-        pjoin(
-            model_save_path,
-            "images",
-            "swin-unet",
-            f"{'train' if train else 'val'}_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png",
-        )
+    path = pjoin(
+        model_save_path,
+        "images",
+        model_name,
+        f"{'train' if train else 'val'}_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png",
     )
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    plt.savefig(path)
     plt.close()
 
 
