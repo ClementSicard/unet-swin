@@ -6,6 +6,6 @@ python code/run.py unet \
     --test-dir "data/test" \
     --val-dir "data/validation" \
     --n_epochs 30 \
-    --batch_size 4 \
+    --batch_size 6 \
     --loss mixed \
     --model-save-dir $SCRATCH

@@ -93,7 +93,10 @@ def train(
         log(f"Epoch {epoch + 1}/{n_epochs}", print_message=False)
 
         try:
-            log(f"GPU memory usage: {torch.cuda.mem_get_info()}")
+            used, available = torch.cuda.mem_get_info()
+            log(
+                f"GPU memory usage: {used / (1024**3):.3f} GB / {available / (1024**3):.3f} GB available"
+            )
         except Exception as e:
             log(f"Error when printing GPU usage: {e}")
 
