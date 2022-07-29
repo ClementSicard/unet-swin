@@ -210,3 +210,26 @@ def crop_to_size(images, labels, size=208):
         cropped_images[i + 3] = image[h - size :, w - size :, :]
         cropped_labels[i + 3] = label[h - size :, w - size :]
     return cropped_images, cropped_labels
+
+
+def crop_to_size_with_crop_index(image, label, index, size=208):
+    # TODO this function is not at all modular
+    _, h, w = image.shape
+
+    if index == 0:
+        cropped_image = image[:, 0:size, 0:size]
+        cropped_label = label[:, 0:size, 0:size]
+
+    elif index == 1:
+        cropped_image = image[:, 0:size, w - size :]
+        cropped_label = label[:, 0:size, w - size :]
+
+    elif index == 2:
+        cropped_image = image[:, h - size :, 0:size]
+        cropped_label = label[:, h - size :, 0:size]
+
+    elif index == 3:
+        cropped_image = image[:, h - size :, w - size :]
+        cropped_label = label[:, h - size :, w - size :]
+
+    return cropped_image, cropped_label
