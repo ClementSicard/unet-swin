@@ -2,7 +2,7 @@ source ~/.bashrc
 conda activate cil
 
 N_EPOCHS=40
-BATCH_SIZE=8
+BATCH_SIZE=64
 
 echo "1st run"
 python code/run.py baseline-unet \
