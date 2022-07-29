@@ -91,8 +91,8 @@ def train(
 
         try:
             log(f"GPU memory usage: {torch.cuda.mem_get_info(device='cuda')}")
-        except:
-            pass
+        except Exception as e:
+            log(f"Error when printing GPU usage: {e}")
 
         # initialize metric list
         metrics = {"loss": [], "val_loss": []}
@@ -132,7 +132,7 @@ def train(
             }
             metrics_dict["max_true"] = np.max(y.cpu().detach().numpy())
             metrics_dict["max_pred"] = np.max(y_hat.cpu().detach().numpy())
-            print(
+            log(
                 f"Epoch: {epoch}, Step: {counter}, Max true: {metrics_dict['max_true']}, Max pred: {metrics_dict['max_pred']}"
             )
             metrics_dict[f"max_sample_{list(best_metric_fn.keys())[0]}"] = max(
