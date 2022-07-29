@@ -12,7 +12,7 @@ from subprocess import Popen
 pjoin = os.path.join
 
 
-def show_val_samples(x, y, y_hat, segmentation=False):
+def show_val_samples(x, y, y_hat, train: bool = False):
     # training callback to show predictions on validation set
     imgs_to_draw = min(5, len(x))
     if x.shape[-2:] == y.shape[-2:]:  # segmentation
@@ -35,7 +35,9 @@ def show_val_samples(x, y, y_hat, segmentation=False):
                 f"True: {np.round(y[i]).item()}; Predicted: {np.round(y_hat[i]).item()}"
             )
             axs[i].set_axis_off()
-    plt.savefig(f"val_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png")
+    plt.savefig(
+        f"{'train' if train else 'val'}_samples_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png"
+    )
     plt.close()
 
 
@@ -137,6 +139,13 @@ def train(
                 metrics[list(best_metric_fn.keys())[0]]
             )
             pbar.set_postfix(metrics_dict)
+        if interactive:
+            show_val_samples(
+                x.detach().cpu().numpy(),
+                y.detach().cpu().numpy(),
+                y_hat.detach().cpu().numpy(),
+                train=True,
+            )
         if scheduler:
             scheduler.step()
         # validation
