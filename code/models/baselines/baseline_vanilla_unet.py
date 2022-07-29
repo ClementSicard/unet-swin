@@ -95,7 +95,7 @@ def run(
     # reshape the image to simplify the handling of skip connections and maxpooling
     train_dataset = OptimizedImageDataset(
         path=train_path,
-        device="cpu",
+        device=device,
         # resize_to=(384, 384),
         crop_size=384,
         crop=True,
@@ -114,7 +114,7 @@ def run(
 
     val_dataset = OptimizedImageDataset(
         path=val_path,
-        device="cpu",
+        device=device,
         # resize_to=(384, 384),
         crop_size=384,
         crop=True,
