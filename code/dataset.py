@@ -148,8 +148,6 @@ class ImageDataset(torch.utils.data.Dataset):
         image_tensor = np_to_tensor(image, self.device)
         mask_tensor = np_to_tensor(mask, self.device)
 
-        print(f"Shape of mask: {mask_tensor.shape}")
-
         return (
             self.transform(image_tensor, mask_tensor, index=index)
             if self.augment

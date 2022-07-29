@@ -1,4 +1,23 @@
 import torch
+import torch.nn as nn
+
+
+class Block(nn.Module):
+    # a repeating structure composed of two convolutional layers with batch normalization and ReLU activations
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(out_ch),
+            nn.Conv2d(
+                in_channels=out_ch, out_channels=out_ch, kernel_size=3, padding=1
+            ),
+            nn.ReLU(),
+        )
+
+    def forward(self, x):
+        return self.block(x)
 
 
 class DecoderBlock(torch.nn.Module):
@@ -21,16 +40,10 @@ class DecoderBlock(torch.nn.Module):
             down_channels, up_channels, kernel_size=kernel_size, padding=1
         )
         self.conv2 = torch.nn.Conv2d(
-            up_channels, up_channels, kernel_size=kernel_size)
+            up_channels, up_channels, kernel_size=kernel_size, padding=1
+        )
+        self.norm = torch.nn.BatchNorm2d(up_channels)
         # self.dropout = torch.nn.Dropout(dropout)
-
-        # self.last_conv = torch.nn.Conv2d
-        # self.last_layer_up = torch.nn.Sequential(
-        #     [
-        #         torch.nn.ConvTranspose2d(96, 33, kernel_size=2, stride=2),
-        #         torch.nn.Conv2d(33, 3, kernel_size=2, stride=2),
-        #     ]
-        # )
 
     def forward(self, x, skip):
         # print(x.shape, skip.shape, self.up(x).shape, flush=True)
@@ -41,12 +54,14 @@ class DecoderBlock(torch.nn.Module):
             x = x[:, :, :-1, :-1]
 
         # print(x.shape, skip.shape, flush=True)
+
         x = torch.cat([x, skip], dim=1)
         # print(x.shape, skip.shape, flush=True)
         x = torch.nn.functional.relu(self.conv1(x))
         # print(x.shape)
+        x = self.norm(x)
         # x = self.dropout(x)
-        # x = torch.nn.functional.relu(self.conv2(x))
+        x = torch.nn.functional.relu(self.conv2(x))
         return x
 
 
@@ -67,24 +82,25 @@ class Decoder(torch.nn.Module):
                 ).to(device)
             )
         FINAL_CHANNEL = sizes[-1][-1]
-        self.last_conv1 = torch.nn.Conv2d(
-            FINAL_CHANNEL//4, FINAL_CHANNEL//8, kernel_size=3, padding=1)
-        self.last_relu = torch.nn.ReLU()
-        self.last_conv2 = torch.nn.Conv2d(
-            FINAL_CHANNEL//16, FINAL_CHANNEL//32, kernel_size=3, padding=1)
+        # self.last_conv1 = torch.nn.Conv2d(
+        # FINAL_CHANNEL//4, FINAL_CHANNEL//8, kernel_size=3, padding=1)
+        # self.last_relu = torch.nn.ReLU()
+        # self.last_conv2 = torch.nn.Conv2d(
+        # FINAL_CHANNEL//16, FINAL_CHANNEL//32, kernel_size=3, padding=1)
         self.last_upX4 = torch.nn.Sequential(
             torch.nn.ConvTranspose2d(
-                FINAL_CHANNEL*2, FINAL_CHANNEL*2, kernel_size=2, stride=2),
+                FINAL_CHANNEL * 2, FINAL_CHANNEL * 2, kernel_size=2, stride=2
+            ),
             torch.nn.ConvTranspose2d(
-                FINAL_CHANNEL*2, FINAL_CHANNEL, kernel_size=2, stride=2),
+                FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=2, stride=2
+            ),
         )
         self.last_convs = torch.nn.Sequential(
-            torch.nn.Conv2d(
-                FINAL_CHANNEL + 3, FINAL_CHANNEL//2, kernel_size=3, padding=1),
+            torch.nn.Conv2d(FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=3, padding=1),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(
-                FINAL_CHANNEL//2, FINAL_CHANNEL//32, kernel_size=3, padding=1),
-            torch.nn.ReLU()
+            torch.nn.BatchNorm2d(FINAL_CHANNEL),
+            torch.nn.Conv2d(FINAL_CHANNEL, FINAL_CHANNEL, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
         )
 
     def forward(self, x, skips):
@@ -98,6 +114,7 @@ class Decoder(torch.nn.Module):
         # print(x.shape, skips[-1].shape)
         x = torch.cat([x, skips[-1]], dim=1)
         x = self.last_convs(x)
+        # print("HERE", x.shape)
         # print(x.shape)
         # x = self.last_conv1(x)
         # x = self.last_relu(x)

@@ -20,7 +20,12 @@ if __name__ == "__main__":
         "model",
         type=str,
         help="Model to use for training.",
-        choices=["baseline-svc", "baseline-unet", "baseline-patch-cnn", "swin-unet"],
+        choices=[
+            "baseline-svc",
+            "baseline-unet",
+            "baseline-patch-cnn",
+            "swin-unet",
+        ],
     )
     parser.add_argument(
         "--model-type",
@@ -33,7 +38,13 @@ if __name__ == "__main__":
         "--loss",
         type=str,
         help="Loss to train with",
-        choices=["bce", "dice", "mixed", "focal"],
+        choices=[
+            "bce",
+            "dice",
+            "mixed",
+            "focal",
+            "twersky",
+        ],
         default="bce",
     )
     parser.add_argument(
@@ -124,7 +135,7 @@ if __name__ == "__main__":
             loss=args.loss,
         )
     elif args.model == "swin-unet":
-        log("Running SWIN-UNet-small...")
+        log(f"Running Swin-{args.model_type.capitalize()}-UNet...")
         swin_unet.run(
             train_path=args.train_dir,
             val_path=args.val_dir,
@@ -134,9 +145,7 @@ if __name__ == "__main__":
             checkpoint_path=args.checkpoint_path,
             model_type=args.model_type,
             loss=args.loss,
-            # augment=args.no_augment,
             model_save_dir=args.model_save_dir,
-            # model_type="small"
         )
 
     else:

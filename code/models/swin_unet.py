@@ -1,18 +1,22 @@
 import numpy as np
 import os
+import cv2
 from datetime import datetime
 from utils import *
 from train import train
-from dataset import ImageDataset
+from dataset import OptimizedImageDataset
 from PIL import Image
 import torch
+
 from .losses.dice_loss import BinaryDiceLoss
+from .losses.mixed_loss import MixedLoss
+from .losses.focal_loss import FocalLoss
+from .losses.twersky_focal_loss import FocalTverskyLoss
+from torch.utils.data import DataLoader
+
 from .encoders.swin import swin_pretrained_s, swin_pretrained_b
 from .decoders.custom_decoder import Decoder
 import sys
-from .losses.dice_loss import BinaryDiceLoss
-from .losses.focal_loss import FocalLoss
-import cv2
 
 sys.path.append("..")
 
@@ -21,10 +25,10 @@ INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
 INFERED_SIZES_B = [(1024, 512), (512, 256), (256, 128), (128, 64)]
 
 
-class SwinUnet(torch.nn.Module):
+class SwinUNet(torch.nn.Module):
     def __init__(self, model_type: str = "small"):
         assert model_type in {"small", "base"}
-        super(SwinUnet, self).__init__()
+        super(SwinUNet, self).__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         if model_type == "small":
@@ -37,6 +41,18 @@ class SwinUnet(torch.nn.Module):
                 padding=1,
                 bias=True,
             )
+            self.tail = torch.nn.Sequential(
+                torch.nn.Conv2d(3, INFERED_SIZES[-1][-1], 3, padding=1),
+                torch.nn.ReLU(),
+                torch.nn.BatchNorm2d(INFERED_SIZES[-1][-1]),
+                torch.nn.Conv2d(
+                    INFERED_SIZES[-1][-1],
+                    INFERED_SIZES[-1][-1],
+                    kernel_size=3,
+                    padding=1,
+                ),
+                torch.nn.ReLU(),
+            )
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
@@ -47,8 +63,20 @@ class SwinUnet(torch.nn.Module):
                 padding=1,
                 bias=True,
             )
+            self.tail = torch.nn.Sequential(
+                torch.nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
+                torch.nn.ReLU(),
+                torch.nn.BatchNorm2d(INFERED_SIZES_B[-1][-1]),
+                torch.nn.Conv2d(
+                    INFERED_SIZES_B[-1][-1],
+                    INFERED_SIZES_B[-1][-1],
+                    kernel_size=3,
+                    padding=1,
+                ),
+                torch.nn.ReLU(),
+            )
         self.head = torch.nn.Sequential(
-            torch.nn.Conv2d(self.decoder.last_conv2.out_channels, 1, 1),
+            torch.nn.Conv2d(self.decoder.last_convs[-2].out_channels, 1, 1),
             torch.nn.Sigmoid(),
         )
 
@@ -58,6 +86,7 @@ class SwinUnet(torch.nn.Module):
         # askip on preprocess les images
         # x = torch.nn.MaxPool2d((2, 2))(x)
         # x = torch.nn.Conv2d(3, 3, kernel_size=7, padding=1, bias=True)(x)
+        x_tail = self.tail(x)
         x = self.encoder(x)
 
         # print(f"Shape of x: {x.shape}")
@@ -65,7 +94,7 @@ class SwinUnet(torch.nn.Module):
         self.encoder.x_int.reverse()
         # for int in self.encoder.x_int[1::]:
         #     log(int.shape)
-        x = self.decoder(x, self.encoder.x_int[1::])
+        x = self.decoder(x, self.encoder.x_int[1:-1:] + [x_tail])
         # x = self.fully_connected(x.view(x.shape[0], -1))
         # x = torch.sigmoid(x)
         # x[x > 0.5] = 1
@@ -83,36 +112,38 @@ def run(
     model_save_dir: str = None,
     checkpoint_path: str = None,
     model_type: str = "small",
-    loss: str = "bce",
+    loss: str = "focal",
 ):
-    assert loss in {"bce", "dice", "mixed", "focal"}
-    log("Training Swin-UNet...")
+    assert loss in {"bce", "dice", "mixed", "focal", "twersky"}
+    log(f"Training Swin-{model_type.capitalize()}-UNet...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
-    train_dataset = ImageDataset(
+    train_dataset = OptimizedImageDataset(
         train_path,
         device,
-        use_patches=False,
-        augment=True,
-        # crop=True,
-        resize_to=(208, 208),
+        augment=False,
+        crop=True,
+        crop_size=208,
     )
-    val_dataset = ImageDataset(
+    val_dataset = OptimizedImageDataset(
         val_path,
         device,
-        use_patches=False,
-        augment=True,
-        # crop=True,
-        resize_to=(208, 208),
+        augment=False,
+        crop=True,
+        crop_size=208,
     )
-    train_dataloader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=batch_size, shuffle=True
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
     )
-    val_dataloader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=batch_size, shuffle=True
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        shuffle=True,
     )
-    model = SwinUnet(model_type=model_type).to(device)
+    model = SwinUNet(model_type=model_type).to(device)
 
     # model.encoder.features.requires_grad_ = False
     # param.requires_grad = False
@@ -121,34 +152,30 @@ def run(
     metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
     best_metric_fns = {"patch_acc": patch_accuracy_fn}
     # Observe that all parameters are being optimized
-    optimizer_ft = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    # optimizer_ft = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer_ft = torch.optim.Adam(model.parameters())
 
     # Decay LR by a factor of 0.1 every 7 epochs
-    exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer_ft, step_size=7, gamma=0.1
-    )
+    # exp_lr_scheduler = torch.optim.lr_scheduler.StepLR(
+    #     optimizer_ft, step_size=7, gamma=0.1
+    # )
 
     if loss == "bce":
         loss_fn = torch.nn.BCELoss()
     elif loss == "dice":
         loss_fn = BinaryDiceLoss()
     elif loss == "mixed":
-
-        def loss_fn(y_hat, y):
-            return 0.4 * torch.nn.BCELoss()(y_hat, y) + 0.6 * BinaryDiceLoss()(y_hat, y)
-
+        loss_fn = MixedLoss()
     elif loss == "focal":
         loss_fn = FocalLoss()
+    elif loss == "twersky":
+        loss_fn = FocalTverskyLoss()
+        # loss_fn = ;ambda x: focal_lossV2(x, alpha=)
     else:
         raise NotImplementedError(f"Loss {loss} is not implemented")
 
-    metric_fns = {
-        "acc": accuracy_fn,
-        "patch_acc": patch_accuracy_fn,
-        "patch_f1": patch_f1_score_fn,
-    }
-    best_metric_fns = {"patch_f1": patch_f1_score_fn}
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    metric_fns = {"acc": accuracy_fn, "patch_acc": patch_accuracy_fn}
+    best_metric_fns = {"patch_f1_score": patch_f1_score_fn}
 
     best_weights_path = train(
         train_dataloader=train_dataloader,
@@ -158,7 +185,7 @@ def run(
         metric_fns=metric_fns,
         best_metric_fn=best_metric_fns,
         optimizer=optimizer_ft,
-        scheduler=exp_lr_scheduler,
+        # scheduler=exp_lr_scheduler,
         n_epochs=n_epochs,
         checkpoint_path=checkpoint_path,
         save_state=True,
@@ -169,7 +196,6 @@ def run(
     log("Training done!")
 
     log("Predicting on test set...")
-    # predict on test set
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
     test_images = load_all_from_path(test_path)
@@ -177,38 +203,71 @@ def run(
     size = test_images.shape[1:3]
     # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
     log("Resizing test images...")
-    test_images = np.stack(
-        [cv2.resize(img, dsize=(208, 208)) for img in test_images], 0
-    )
+    test_images = np.stack([img for img in test_images], 0)
     test_images = test_images[:, :, :, :3]
     test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
     log("Making predictions...")
-    # Load best model state
-    checkpoint = torch.load(best_weights_path)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    log(f"Loaded best model weights ({best_weights_path})")
 
-    test_pred = [
-        model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
-    ]
-    test_pred = np.concatenate(test_pred, 0)
-    test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-    test_pred = np.stack(
-        [cv2.resize(img, dsize=size) for img in test_pred], 0
-    )  # resize to original shape
-    # Now compute labels
-    test_pred = test_pred.reshape(
-        (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
-    )
-    test_pred = np.moveaxis(test_pred, 2, 3)
-    test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
-    log(f"Test predictions shape: {test_pred.shape}")
-    now = datetime.now()
-    t = now.strftime("%Y-%m-%d_%H:%M:%S")
-    os.makedirs("submissions", exist_ok=True)
-    create_submission(
-        test_pred,
-        test_filenames,
-        submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
-    )
-    log(f"Created submission!")
+    with torch.no_grad():
+        checkpoint = torch.load(best_weights_path)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        log(f"Loaded best model weights ({best_weights_path})")
+
+        test_pred = []
+        CROP_SIZE = 200
+        RESIZE_SIZE = 208
+        for image in test_images:
+            cropped_image = [
+                image[0:CROP_SIZE, 0:CROP_SIZE, :],
+                image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+            ]
+
+            pred_cropped = [
+                model(cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE)))
+                .detach()
+                .cpu()
+                .numpy()
+                for c_img in cropped_image
+            ]
+
+            full_pred = np.zeros((3, 400, 400))
+
+            full_pred[0:CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
+                pred_cropped[0], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
+                pred_cropped[1], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :] = cv2.resize(
+                pred_cropped[2], dsize=(CROP_SIZE, CROP_SIZE)
+            )
+            full_pred[
+                CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :
+            ] = cv2.resize(pred_cropped[3], dsize=(CROP_SIZE, CROP_SIZE))
+
+            test_pred.append(full_pred)
+
+        # test_pred = [model(t).detach().cpu().numpy()
+        #              for t in tqdm(test_images.unsqueeze(1))]
+
+        test_pred = np.concatenate(test_pred, 0)
+        test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
+        test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
+        # Now compute labels
+        test_pred = test_pred.reshape(
+            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+        )
+        test_pred = np.moveaxis(test_pred, 2, 3)
+        test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
+        log(f"Test predictions shape: {test_pred.shape}")
+        now = datetime.now()
+        t = now.strftime("%Y-%m-%d_%H-%M-%S")
+        os.makedirs("submissions", exist_ok=True)
+        create_submission(
+            test_pred,
+            test_filenames,
+            submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
+        )
+        log(f"Created submission!")
