@@ -109,7 +109,6 @@ def run(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
     )
 
     val_dataset = OptimizedImageDataset(
@@ -128,7 +127,6 @@ def run(
         val_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
     )
 
     display_gpu_usage()
