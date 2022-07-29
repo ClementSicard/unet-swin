@@ -110,7 +110,6 @@ def run(
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        collate_fn=lambda x: default_collate(x).to(device),
     )
 
     val_dataset = OptimizedImageDataset(
@@ -130,7 +129,6 @@ def run(
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        collate_fn=lambda x: default_collate(x).to(device),
     )
 
     display_gpu_usage()
