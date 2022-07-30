@@ -345,6 +345,8 @@ def test_and_create_sub(
                 ).cpu().numpy().squeeze(axis=1)
 
                 full_pred = np.zeros((400, 400))
+                [cv2.imwrite(f"tmp/{i}_{j}.png", (res[j] *
+                             255).astype(np.uint8)) for j in range(4)]
 
                 full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
                     res[0], dsize=(CROP_SIZE, CROP_SIZE)
