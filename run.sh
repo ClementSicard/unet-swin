@@ -2,7 +2,7 @@ source ~/.bashrc
 conda activate cil
 
 N_EPOCHS=50
-BATCH_SIZE=8
+BATCH_SIZE=4
 
 python code/run.py swin-unet \
     --train-dir "data/training" \
