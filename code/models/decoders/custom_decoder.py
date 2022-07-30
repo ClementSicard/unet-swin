@@ -52,7 +52,6 @@ class DecoderBlock(nn.Module):
         if x.shape[2] > skip.shape[2]:
             # when x is [batch, channels, 13, 13] to [batch, channels, 25, 25]
             # we have to crop it
-            print("do we still need this ? :( ")
             x = x[:, :, :-1, :-1]
         x = torch.cat([x, skip], dim=1)
         x = self.block(x)
