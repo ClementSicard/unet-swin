@@ -271,7 +271,7 @@ def test_and_create_sub(
         log("Resizing test images...")
         test_images = np.stack([img for img in test_images], 0)
         test_images = test_images[:, :, :, :3]
-        test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
+        # test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
         log("Making predictions...")
         with torch.no_grad():
             model = SwinUNet(model_type=model_type).to(device)
@@ -287,9 +287,12 @@ def test_and_create_sub(
             RESIZE_SIZE = 208
             os.makedirs("tmp", exist_ok=True)
             for i, image in enumerate(tqdm(test_images)):
-                np_image = image.cpu().numpy()
+                # np_image = image.cpu().numpy()
+                np_image = image.copy()
                 # move channels to last axis
-                np_image = np.moveaxis(np_image, 0, -1)
+                # np_image = np.moveaxis(np_image, 0, -1)
+                print(np_image.shape)
+                cv2.imwrite(np_image)
 
                 # splits the image into 4 equal patches
                 cropped_image = [
