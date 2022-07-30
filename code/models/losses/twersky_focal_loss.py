@@ -1,8 +1,8 @@
 import torch.nn as nn
 
 # PyTorch
-ALPHA = 0.9
-BETA = 0.2
+ALPHA = 0.7
+BETA = 0.3
 GAMMA = 3 / 4
 
 

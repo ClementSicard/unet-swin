@@ -7,7 +7,8 @@ class Block(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=in_ch, out_channels=out_ch,
+                      kernel_size=3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(out_ch),
             nn.Conv2d(
@@ -20,7 +21,7 @@ class Block(nn.Module):
         return self.block(x)
 
 
-class DecoderBlock(torch.nn.Module):
+class DecoderBlock(nn.Module):
     def __init__(
         self,
         down_channels,
@@ -28,22 +29,22 @@ class DecoderBlock(torch.nn.Module):
         kernel_size_up,
         stride_up,
         kernel_size,
-        # dropout=0.0,
     ):
         super(DecoderBlock, self).__init__()
 
-        self.up = torch.nn.ConvTranspose2d(
+        self.up = nn.ConvTranspose2d(
             down_channels, up_channels, kernel_size=kernel_size_up, stride=stride_up
         )
 
-        self.conv1 = torch.nn.Conv2d(
-            down_channels, up_channels, kernel_size=kernel_size, padding=1
+        self.block = nn.Sequential(
+            nn.Conv2d(down_channels, up_channels,
+                      kernel_size=kernel_size, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(up_channels),
+            nn.Conv2d(up_channels, up_channels,
+                      kernel_size=kernel_size, padding=1),
+            nn.ReLU(),
         )
-        self.conv2 = torch.nn.Conv2d(
-            up_channels, up_channels, kernel_size=kernel_size, padding=1
-        )
-        self.norm = torch.nn.BatchNorm2d(up_channels)
-        # self.dropout = torch.nn.Dropout(dropout)
 
     def forward(self, x, skip):
         # print(x.shape, skip.shape, self.up(x).shape, flush=True)
@@ -51,21 +52,14 @@ class DecoderBlock(torch.nn.Module):
         if x.shape[2] > skip.shape[2]:
             # when x is [batch, channels, 13, 13] to [batch, channels, 25, 25]
             # we have to crop it
+            print("do we still need this ? :( ")
             x = x[:, :, :-1, :-1]
-
-        # print(x.shape, skip.shape, flush=True)
-
         x = torch.cat([x, skip], dim=1)
-        # print(x.shape, skip.shape, flush=True)
-        x = torch.nn.functional.relu(self.conv1(x))
-        # print(x.shape)
-        x = self.norm(x)
-        # x = self.dropout(x)
-        x = torch.nn.functional.relu(self.conv2(x))
+        x = self.block(x)
         return x
 
 
-class Decoder(torch.nn.Module):
+class Decoder(nn.Module):
     def __init__(self, sizes) -> None:
         super().__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -82,43 +76,32 @@ class Decoder(torch.nn.Module):
                 ).to(device)
             )
         FINAL_CHANNEL = sizes[-1][-1]
-        # self.last_conv1 = torch.nn.Conv2d(
+        # self.last_conv1 = nn.Conv2d(
         # FINAL_CHANNEL//4, FINAL_CHANNEL//8, kernel_size=3, padding=1)
-        # self.last_relu = torch.nn.ReLU()
-        # self.last_conv2 = torch.nn.Conv2d(
+        # self.last_relu = nn.ReLU()
+        # self.last_conv2 = nn.Conv2d(
         # FINAL_CHANNEL//16, FINAL_CHANNEL//32, kernel_size=3, padding=1)
-        self.last_upX4 = torch.nn.Sequential(
-            torch.nn.ConvTranspose2d(
-                FINAL_CHANNEL * 2, FINAL_CHANNEL * 2, kernel_size=2, stride=2
-            ),
-            torch.nn.ConvTranspose2d(
-                FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=2, stride=2
-            ),
+        self.last_upX4 = nn.Sequential(
+            nn.ConvTranspose2d(
+                FINAL_CHANNEL*2, FINAL_CHANNEL*2, kernel_size=2, stride=2),
+            nn.ConvTranspose2d(
+                FINAL_CHANNEL*2, FINAL_CHANNEL, kernel_size=2, stride=2),
         )
-        self.last_convs = torch.nn.Sequential(
-            torch.nn.Conv2d(FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=3, padding=1),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(FINAL_CHANNEL),
-            torch.nn.Conv2d(FINAL_CHANNEL, FINAL_CHANNEL, kernel_size=3, padding=1),
-            torch.nn.ReLU(),
+        self.last_convs = nn.Sequential(
+            nn.Conv2d(
+                FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(FINAL_CHANNEL),
+            nn.Conv2d(
+                FINAL_CHANNEL, FINAL_CHANNEL, kernel_size=3, padding=1),
+            nn.ReLU()
         )
 
     def forward(self, x, skips):
+        # We apply the same block to all the skips expect the last one as we need first to upscale the image 4 times
         for block, skip in zip(self.blocks, skips[:-1]):
-            # print("wow")
-            # print(x.shape, skip.shape, flush=True)
             x = block(x, skip)
-            # skip = x
-        # x should be of size [batch, 6, 400, 400]
         x = self.last_upX4(x)
-        # print(x.shape, skips[-1].shape)
         x = torch.cat([x, skips[-1]], dim=1)
         x = self.last_convs(x)
-        # print("HERE", x.shape)
-        # print(x.shape)
-        # x = self.last_conv1(x)
-        # x = self.last_relu(x)
-        # x = self.last_conv2(x)
-        # x is of size [batch, 1, 400, 400]
-        # print("final output", x.shape)
         return x

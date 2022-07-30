@@ -83,23 +83,13 @@ class SwinUNet(torch.nn.Module):
         # self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
-        # askip on preprocess les images
-        # x = torch.nn.MaxPool2d((2, 2))(x)
-        # x = torch.nn.Conv2d(3, 3, kernel_size=7, padding=1, bias=True)(x)
         x_tail = self.tail(x)
         x = self.encoder(x)
 
-        # print(f"Shape of x: {x.shape}")
         x = self.prev_conv(x)
         self.encoder.x_int.reverse()
-        # for int in self.encoder.x_int[1::]:
-        #     log(int.shape)
         x = self.decoder(x, self.encoder.x_int[1:-1:] + [x_tail])
-        # x = self.fully_connected(x.view(x.shape[0], -1))
-        # x = torch.sigmoid(x)
-        # x[x > 0.5] = 1
-        # x[x <= 0.5] = 0
-        # log(x.shape, flush=True)
+
         return self.head(x)
 
 
