@@ -10,7 +10,7 @@ python code/run.py swin-unet \
     --val-dir "data/validation" \
     --n_epochs $N_EPOCHS \
     --batch_size $BATCH_SIZE \
-    --loss patch-f1 \
+    --loss twersky \
     --model-save-dir $SCRATCH
 
 echo "Done!"

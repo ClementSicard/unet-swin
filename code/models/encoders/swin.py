@@ -14,12 +14,7 @@ class IntSwinS(SwinTransformer):
             if i % 2 == 1 and i < len(self.features) - 2:
                 # We don't want to the last one as it is the output
                 self.x_int.append(x.permute(0, 3, 1, 2))
-        # x = self.x_int[-1]
-        # x = self.norm(x)
-        # x = x.permute(0, 3, 1, 2)
-        # x = self.avgpool(x)
-        # x = torch.flatten(x, 1)
-        # x = self.head(x)
+
         return x.permute(0, 3, 1, 2)
 
 
@@ -56,7 +51,6 @@ def _swin_transformer(
         stochastic_depth_prob=stochastic_depth_prob,
         **kwargs,
     )
-    # print(model.attention_dropout)
 
     if weights is not None:
         model.load_state_dict(weights.get_state_dict(progress=progress))
