@@ -2,6 +2,8 @@ import numpy as np
 import os
 import cv2
 from datetime import datetime
+
+from pandas import test
 from utils import *
 from train import train
 from dataset import OptimizedImageDataset
@@ -217,6 +219,7 @@ def test_and_create_sub(
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
     test_images = load_all_from_path(test_path)
+    print(test_images.flatten().max())
     batch_size = test_images.shape[0]
     size = test_images.shape[1:3]
 
@@ -271,6 +274,7 @@ def test_and_create_sub(
         log("Resizing test images...")
         test_images = np.stack([img for img in test_images], 0)
         test_images = test_images[:, :, :, :3]
+        print(test_images.flatten().max())
         # test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
         log("Making predictions...")
         with torch.no_grad():
@@ -281,18 +285,22 @@ def test_and_create_sub(
                 log(f"Loaded best model weights ({model_path})")
             else:
                 log("DEBUG: No best weights path using default weights")
-
             test_pred = []
             CROP_SIZE = 200
             RESIZE_SIZE = 208
             os.makedirs("tmp", exist_ok=True)
             for i, image in enumerate(tqdm(test_images)):
                 # np_image = image.cpu().numpy()
+                print("Single image : ", image.flatten().max())
+                a = Image.fromarray((image * 255).astype(np.uint8))
+                # plt.imshow(a)
+                # plt.show()
                 np_image = image.copy()
                 # move channels to last axis
                 # np_image = np.moveaxis(np_image, 0, -1)
                 print(np_image.shape)
-                cv2.imwrite(f"tmp/{i}_np_image.png", np_image)
+                cv2.imwrite(f"tmp/{i}_np_image.png",
+                            (np_image * 255).astype(np.uint8))
 
                 # splits the image into 4 equal patches
                 cropped_image = [
@@ -303,7 +311,12 @@ def test_and_create_sub(
                              CROP_SIZE: 2 * CROP_SIZE, :],
                 ]
 
-                cv2.imwrite(f"tmp/{i}_crops.png", cropped_image[0])
+                cv2.imwrite(f"tmp/{i}_crops.png",
+                            (cropped_image[0] * 255).astype(np.uint8))
+                # print(cropped_image[0])
+                a = Image.fromarray((cropped_image[0] * 255).astype(np.uint8))
+                # plt.imshow(a)
+                # plt.show()
 
                 # resize the patches to the same size as the training images
                 resized_image = [
@@ -311,10 +324,15 @@ def test_and_create_sub(
                     for c_img in cropped_image
                 ]
                 # save cropped to file
-                cv2.imwrite("tmp/{}.png".format(i), resized_image[0])
+                cv2.imwrite("tmp/{}.png".format(i),
+                            (resized_image[0] * 255).astype(np.uint8))
+                a = Image.fromarray((resized_image[0] * 255).astype(np.uint8))
+                # plt.imshow(a)
+                # plt.show()
 
                 # create a tensor from the resized patches
                 resized_crops = np.stack(resized_image, 0)
+                # print(resized_crops.shape)
 
                 # BHWC -> BCHW
                 # TODO : ASK IF THIS IS CORRECT CLEMENT
@@ -343,7 +361,8 @@ def test_and_create_sub(
 
                 test_pred.append(full_pred)
                 # save pred to file
-                cv2.imwrite(f"tmp/pred_{i}.png", full_pred)
+                cv2.imwrite(f"tmp/pred_{i}.png",
+                            (full_pred * 255).astype(np.uint8))
                 exit()
 
             # test_pred = [model(t).detach().cpu().numpy()
