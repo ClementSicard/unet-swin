@@ -41,6 +41,8 @@ if __name__ == "__main__":
             "mixed",
             "focal",
             "twersky",
+            "f1",
+            "patch-f1",
         ],
         default="bce",
     )
