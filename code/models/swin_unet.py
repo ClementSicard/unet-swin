@@ -205,7 +205,7 @@ def test_and_create_sub(test_path: str, model_path: str = None, model_type: str 
     with torch.no_grad():
         model = SwinUNet(model_type=model_type).to(device)
         if model_path:
-            checkpoint = torch.load(model_path)
+            checkpoint = torch.load(model_path, map_location=device)
             model.load_state_dict(checkpoint["model_state_dict"])
             log(f"Loaded best model weights ({model_path})")
         else:
