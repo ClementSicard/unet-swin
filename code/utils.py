@@ -159,45 +159,45 @@ def get_best_available_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
+def f1_score_fn(y_hat, y, threshold=CUTOFF):
+    y_hat = torch.where(
+        y_hat >= threshold, torch.ones_like(y_hat), torch.zeros_like(y_hat)
+    )
+    y = torch.where(y >= threshold, torch.ones_like(y), torch.zeros_like(y))
+
+    return _f1_score_fn(y_hat, y)
+
+
 def _f1_score_fn(y_hat, y):
-    with torch.no_grad():
-        return f1_score(
-            y_true=y.flatten().cpu().numpy(),
-            y_pred=y_hat.flatten().cpu().numpy(),
-        )
+    return f1_score(
+        y_true=y.flatten().cpu().numpy(),
+        y_pred=y_hat.flatten().cpu().numpy(),
+    )
 
 
 def patch_accuracy_fn(y_hat, y):
+    w = y_hat.shape[-1]
+    size = PATCH_SIZE if w > 250 else PATCH_SIZE // 2
     # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
-    h_patches = y.shape[-2] // PATCH_SIZE
-    w_patches = y.shape[-1] // PATCH_SIZE
+    h_patches = y.shape[-2] // size
+    w_patches = y.shape[-1] // size
     patches_hat = (
-        y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean(
-            (-1, -3)
-        )
-        > CUTOFF
+        y_hat.reshape(-1, 1, h_patches, size, w_patches, size).mean((-1, -3)) > CUTOFF
     )
-    patches = (
-        y.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3))
-        > CUTOFF
-    )
+    patches = y.reshape(-1, 1, h_patches, size, w_patches, size).mean((-1, -3)) > CUTOFF
     return (patches == patches_hat).float().mean()
 
 
 def patch_f1_score_fn(y_hat, y):
+    w = y_hat.shape[-1]
+    size = PATCH_SIZE if w > 250 else PATCH_SIZE // 2
     # computes accuracy weighted by patches (metric used on Kaggle for evaluation)
-    h_patches = y.shape[-2] // PATCH_SIZE
-    w_patches = y.shape[-1] // PATCH_SIZE
+    h_patches = y.shape[-2] // size
+    w_patches = y.shape[-1] // size
     patches_hat = (
-        y_hat.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean(
-            (-1, -3)
-        )
-        > CUTOFF
+        y_hat.reshape(-1, 1, h_patches, size, w_patches, size).mean((-1, -3)) > CUTOFF
     )
-    patches = (
-        y.reshape(-1, 1, h_patches, PATCH_SIZE, w_patches, PATCH_SIZE).mean((-1, -3))
-        > CUTOFF
-    )
+    patches = y.reshape(-1, 1, h_patches, size, w_patches, size).mean((-1, -3)) > CUTOFF
 
     return _f1_score_fn(y=patches, y_hat=patches_hat)
 

@@ -1,6 +1,7 @@
 from utils import *
 import argparse
 import models.swin_unet as swin_unet
+
 # TODO import models.unet as unet
 
 if __name__ == "__main__":
@@ -10,9 +11,7 @@ if __name__ == "__main__":
         type=str,
         help="Model to use for training.",
         # TODO add other choices
-        choices=[
-            "swin-unet"
-        ]
+        choices=["swin-unet"],
     )
     parser.add_argument(
         "--model-type",
@@ -31,7 +30,13 @@ if __name__ == "__main__":
         "--model-weights-path",
         type=str,
         required=True,
-        help="Path to the model weights"
+        help="Path to the model weights",
+    )
+    parser.add_argument(
+        "--just-resize",
+        action="store_true",
+        default=False,
+        help="If we just resize the image",
     )
 
     args = parser.parse_args()
@@ -43,6 +48,7 @@ if __name__ == "__main__":
             test_path=args.test_dir,
             model_path=args.model_weights_path,
             model_type=args.model_type,
+            just_resize=args.just_resize,
         )
     else:
         raise NotImplementedError("Not implemented yet")

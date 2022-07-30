@@ -3,6 +3,8 @@ from train import train
 from dataset import OptimizedImageDataset
 from utils import *
 from .losses.dice_loss import BinaryDiceLoss
+from .losses.mixed_f1_loss import MixedF1Loss
+from .losses.mixed_patch_f1_loss import MixedPatchF1Loss
 from .losses.focal_loss import FocalLoss
 from .losses.mixed_loss import MixedLoss
 from .losses.twersky_focal_loss import FocalTverskyLoss
@@ -144,11 +146,24 @@ def run(
         loss_fn = FocalLoss()
     elif loss == "twersky":
         loss_fn = FocalTverskyLoss()
+    elif loss == "f1":
+        loss_fn = MixedF1Loss(
+            # Can be changed
+            other_loss=FocalLoss(),
+        )
+    elif loss == "patch-f1":
+        loss_fn = MixedPatchF1Loss(
+            # Can be changed
+            other_loss=FocalLoss(),
+        )
+    else:
+        raise ValueError(f"Unknown loss function: {loss}")
     best_metric_fn = {"patch_f1": patch_f1_score_fn}
     metric_fns = {
         "acc": accuracy_fn,
         "patch_acc": patch_accuracy_fn,
         "patch_f1": patch_f1_score_fn,
+        "f1": f1_score_fn,
     }
     optimizer = torch.optim.Adam(model.parameters())
 
