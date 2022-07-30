@@ -61,13 +61,13 @@ class SwinUNet(nn.Module):
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
-            self.prev_conv = nn.Conv2d(
-                INFERED_SIZES_B[0][0],
-                INFERED_SIZES_B[0][0],
-                kernel_size=3,
-                padding=1,
-                bias=True,
-            )
+            # self.prev_conv = nn.Conv2d(
+            #     INFERED_SIZES_B[0][0],
+            #     INFERED_SIZES_B[0][0],
+            #     kernel_size=3,
+            #     padding=1,
+            #     bias=True,
+            # )
             self.tail = nn.Sequential(
                 nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
                 nn.ReLU(),
@@ -83,12 +83,12 @@ class SwinUNet(nn.Module):
         self.last_n_channels = self.decoder.last_convs[-2].out_channels
         self.head = nn.Sequential(
             nn.Conv2d(self.last_n_channels,
-                      self.last_n_channels // 2, 3, padding=1),
+                      3, 3, padding=1),
             nn.ReLU(),
-            nn.BatchNorm2d(self.last_n_channels // 2),
-            nn.Conv2d(self.last_n_channels // 2,
-                      self.last_n_channels // 2, 3, padding=1),
-            nn.ReLU(),
+            nn.BatchNorm2d(3),
+            # nn.Conv2d(self.last_n_channels // 2,
+            #           3, 3, padding=1),
+            # nn.ReLU(),
             nn.Conv2d(3, 1, 1),
             nn.Sigmoid(),
         )
@@ -97,9 +97,9 @@ class SwinUNet(nn.Module):
         x_tail = self.tail(x)
         x = self.encoder(x)
 
-        x = self.prev_conv(x)
+        # x = self.prev_conv(x)
         self.encoder.x_int.reverse()
-        x = self.decoder(x, self.encoder.x_int[1:-1:] + [x_tail])
+        x = self.decoder(x, self.encoder.x_int[:] + [x_tail])
 
         return self.head(x)
 

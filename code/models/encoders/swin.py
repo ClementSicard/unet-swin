@@ -7,10 +7,11 @@ from torchvision.models._utils import V
 
 class IntSwinS(SwinTransformer):
     def forward(self, x):
-        self.x_int = [x]
+        # self.x_int = [x]
+        self.x_int = []
         for i in range(len(self.features)):
             x = self.features[i](x)
-            if i % 2 == 0 and i != len(self.features) - 1:
+            if i % 2 == 0 and i < len(self.features) - 3:
                 # We don't want to the last one as it is the output
                 self.x_int.append(x.permute(0, 3, 1, 2))
         # x = self.x_int[-1]
@@ -25,7 +26,8 @@ class IntSwinS(SwinTransformer):
 def _ovewrite_named_param(kwargs: Dict[str, Any], param: str, new_value: V) -> None:
     if param in kwargs:
         if kwargs[param] != new_value:
-            raise ValueError(f"The parameter '{param}' expected value {new_value} but got {kwargs[param]} instead.")
+            raise ValueError(
+                f"The parameter '{param}' expected value {new_value} but got {kwargs[param]} instead.")
     else:
         kwargs[param] = new_value
 
@@ -42,7 +44,8 @@ def _swin_transformer(
     **kwargs: Any,
 ) -> SwinTransformer:
     if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
+        _ovewrite_named_param(kwargs, "num_classes",
+                              len(weights.meta["categories"]))
 
     model = IntSwinS(
         patch_size=patch_size,

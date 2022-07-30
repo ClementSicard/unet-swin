@@ -75,11 +75,6 @@ class Decoder(nn.Module):
                 ).to(device)
             )
         FINAL_CHANNEL = sizes[-1][-1]
-        # self.last_conv1 = nn.Conv2d(
-        # FINAL_CHANNEL//4, FINAL_CHANNEL//8, kernel_size=3, padding=1)
-        # self.last_relu = nn.ReLU()
-        # self.last_conv2 = nn.Conv2d(
-        # FINAL_CHANNEL//16, FINAL_CHANNEL//32, kernel_size=3, padding=1)
         self.last_upX4 = nn.Sequential(
             nn.ConvTranspose2d(
                 FINAL_CHANNEL*2, FINAL_CHANNEL*2, kernel_size=2, stride=2),
