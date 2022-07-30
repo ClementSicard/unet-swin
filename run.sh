@@ -2,7 +2,7 @@ source ~/.bashrc
 conda activate cil
 
 N_EPOCHS=50
-BATCH_SIZE=16
+BATCH_SIZE=32
 
 python code/run.py swin-unet \
     --train-dir "data/training" \
@@ -11,7 +11,7 @@ python code/run.py swin-unet \
     --n_epochs $N_EPOCHS \
     --batch_size $BATCH_SIZE \
     --model-type base \
-    --loss dice \
+    --loss mixed \
     --model-save-dir $SCRATCH
 
 python code/run.py swin-unet \
