@@ -199,43 +199,60 @@ def run(
     log("Making predictions...")
 
     with torch.no_grad():
-        checkpoint = torch.load(best_weights_path)
-        model.load_state_dict(checkpoint["model_state_dict"])
-        log(f"Loaded best model weights ({best_weights_path})")
+        if best_weights_path:
+            checkpoint = torch.load(best_weights_path)
+            model.load_state_dict(checkpoint["model_state_dict"])
+            log(f"Loaded best model weights ({best_weights_path})")
+        else:
+            log("DEBUG: No best weights path using default weights")
 
         test_pred = []
         CROP_SIZE = 200
         RESIZE_SIZE = 208
-        for image in test_images:
+        for image in tqdm(test_images):
+            np_image = image.cpu().numpy()
+            # move channels to last axis
+            np_image = np.moveaxis(np_image, 0, -1)
+
+            # splits the image into 4 equal patches
             cropped_image = [
-                image[0:CROP_SIZE, 0:CROP_SIZE, :],
-                image[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :],
-                image[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
-                image[CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
+                np_image[0:CROP_SIZE, 0:CROP_SIZE, :],
+                np_image[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                np_image[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
+                np_image[CROP_SIZE: 2 * CROP_SIZE,
+                         CROP_SIZE: 2 * CROP_SIZE, :],
             ]
 
-            pred_cropped = [
-                model(cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE)))
-                .detach()
-                .cpu()
-                .numpy()
-                for c_img in cropped_image
-            ]
+            # resize the patches to the same size as the training images
+            resized_image = [cv2.resize(c_img, dsize=(
+                RESIZE_SIZE, RESIZE_SIZE)) for c_img in cropped_image]
 
-            full_pred = np.zeros((3, 400, 400))
+            # create a tensor from the resized patches
+            resized_crops = np.stack(resized_image, 0)
 
-            full_pred[0:CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
-                pred_cropped[0], dsize=(CROP_SIZE, CROP_SIZE)
+            # BHWC -> BCHW
+            # TODO : ASK IF THIS IS CORRECT CLEMENT
+            resized_crops = np_to_tensor(
+                np.moveaxis(resized_image, -1, 1), device)
+
+            # predict the segmentation
+            # res has shape (4, H, W)
+            res = model(resized_crops).detach().cpu().numpy().squeeze(axis=1)
+
+            full_pred = np.zeros((400, 400))
+
+            full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+                res[0], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :] = cv2.resize(
-                pred_cropped[1], dsize=(CROP_SIZE, CROP_SIZE)
+            full_pred[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+                res[1], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :] = cv2.resize(
-                pred_cropped[2], dsize=(CROP_SIZE, CROP_SIZE)
+            full_pred[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE] = cv2.resize(
+                res[2], dsize=(CROP_SIZE, CROP_SIZE)
             )
             full_pred[
-                CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :
-            ] = cv2.resize(pred_cropped[3], dsize=(CROP_SIZE, CROP_SIZE))
+                CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE
+            ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
 
             test_pred.append(full_pred)
 

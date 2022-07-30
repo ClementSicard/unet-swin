@@ -13,6 +13,7 @@ python code/run.py swin-unet \
     --batch_size $BATCH_SIZE \
     --model-type base \
     --loss twersky \
-    --model-save-dir $SCRATCH
+    --model-save-dir "/cluster/scratch/kpyszkowski/models/swin-unet/mix/" \
+    # --model-save-dir $SCRATCH
 
 echo "Done!"

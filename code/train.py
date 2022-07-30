@@ -22,8 +22,10 @@ def show_val_samples(
         fig, axs = plt.subplots(3, imgs_to_draw, figsize=(18.5, 12))
         for i in range(imgs_to_draw):
             axs[0, i].imshow(np.moveaxis(x[i], 0, -1))
-            axs[1, i].imshow(np.concatenate([np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
-            axs[2, i].imshow(np.concatenate([np.moveaxis(y[i], 0, -1)] * 3, -1))
+            axs[1, i].imshow(np.concatenate(
+                [np.moveaxis(y_hat[i], 0, -1)] * 3, -1))
+            axs[2, i].imshow(np.concatenate(
+                [np.moveaxis(y[i], 0, -1)] * 3, -1))
             axs[0, i].set_title(f"Sample {i}")
             axs[1, i].set_title(f"Predicted {i}")
             axs[2, i].set_title(f"True {i}")
@@ -172,7 +174,8 @@ def train(
             writer.add_scalar(k, v, epoch)
         log(
             "\n".join(
-                ["\t- " + str(k) + " = " + str(v) for (k, v) in history[epoch].items()]
+                ["\t- " + str(k) + " = " + str(v)
+                 for (k, v) in history[epoch].items()]
             )
         )
         if interactive:
@@ -222,7 +225,8 @@ def train(
     log("Finished Training")
     # plot loss curves
     plt.plot([v["loss"] for k, v in history.items()], label="Training Loss")
-    plt.plot([v["val_loss"] for k, v in history.items()], label="Validation Loss")
+    plt.plot([v["val_loss"]
+             for k, v in history.items()], label="Validation Loss")
     plt.ylabel("Loss")
     plt.xlabel("Epochs")
     plt.legend()
@@ -233,5 +237,9 @@ def train(
         plt.show()
 
     if save_state:
-        log(f"Path to best model: {best_model_path}")
-        return best_model_path
+        if n_epochs != 0:
+            # Here we check if the model was trained for more than 0 epochs
+            # If so, we save the model with the best metric
+            # If not the returned path will be empty for debugging purposes
+            log(f"Path to best model: {best_model_path}")
+            return best_model_path
