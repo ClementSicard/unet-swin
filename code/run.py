@@ -29,7 +29,7 @@ if __name__ == "__main__":
         type=str,
         help="Model to use for training Swin. Will be ignored otherwise",
         choices=["small", "base"],
-        default="small",
+        default="base",
     )
     parser.add_argument(
         "--loss",
