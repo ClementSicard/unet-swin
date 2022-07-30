@@ -83,13 +83,13 @@ class SwinUNet(nn.Module):
         self.last_n_channels = self.decoder.last_convs[-2].out_channels
         self.head = nn.Sequential(
             nn.Conv2d(self.last_n_channels,
-                      3, 3, padding=1),
-            nn.ReLU(),
-            nn.BatchNorm2d(3),
-            # nn.Conv2d(self.last_n_channels // 2,
-            #           3, 3, padding=1),
+                      1, 1),
             # nn.ReLU(),
-            nn.Conv2d(3, 1, 1),
+            # nn.BatchNorm2d(3),
+            # # nn.Conv2d(self.last_n_channels // 2,
+            # #           3, 3, padding=1),
+            # # nn.ReLU(),
+            # nn.Conv2d(3, 1, 1),
             nn.Sigmoid(),
         )
 
