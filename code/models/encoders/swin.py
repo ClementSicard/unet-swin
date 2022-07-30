@@ -11,7 +11,7 @@ class IntSwinS(SwinTransformer):
         self.x_int = []
         for i in range(len(self.features)):
             x = self.features[i](x)
-            if i % 2 == 0 and i < len(self.features) - 3:
+            if i % 2 == 1 and i < len(self.features) - 2:
                 # We don't want to the last one as it is the output
                 self.x_int.append(x.permute(0, 3, 1, 2))
         # x = self.x_int[-1]
