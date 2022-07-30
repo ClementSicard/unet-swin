@@ -12,6 +12,8 @@ from .losses.dice_loss import BinaryDiceLoss
 from .losses.mixed_loss import MixedLoss
 from .losses.focal_loss import FocalLoss
 from .losses.twersky_focal_loss import FocalTverskyLoss
+from .losses.mixed_f1_loss import MixedF1Loss
+from .losses.mixed_patch_f1_loss import MixedPatchF1Loss
 from torch.utils.data import DataLoader
 
 from .encoders.swin import swin_pretrained_s, swin_pretrained_b
@@ -104,16 +106,26 @@ def run(
     model_type: str = "small",
     loss: str = "focal",
 ):
-    assert loss in {"bce", "dice", "mixed", "focal", "twersky"}
+    assert loss in {"bce", "dice", "mixed", "focal", "twersky", "f1", "patch-f1"}
     log(f"Training Swin-{model_type.capitalize()}-UNet...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
     train_dataset = OptimizedImageDataset(
-        train_path, device, augment=True, crop=True, crop_size=208, type_="training"
+        train_path,
+        device,
+        augment=True,
+        crop=True,
+        crop_size=208,
+        type_="training",
     )
     val_dataset = OptimizedImageDataset(
-        val_path, device, augment=True, crop=True, crop_size=208, type_="validation"
+        val_path,
+        device,
+        augment=True,
+        crop=True,
+        crop_size=208,
+        type_="validation",
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -152,7 +164,16 @@ def run(
         loss_fn = FocalLoss()
     elif loss == "twersky":
         loss_fn = FocalTverskyLoss()
-        # loss_fn = ;ambda x: focal_lossV2(x, alpha=)
+    elif loss == "f1":
+        loss_fn = MixedF1Loss(
+            # Can be changed
+            other_loss=FocalLoss(),
+        )
+    elif loss == "patch-f1":
+        loss_fn = MixedPatchF1Loss(
+            # Can be changed
+            other_loss=FocalLoss(),
+        )
     else:
         raise NotImplementedError(f"Loss {loss} is not implemented")
 
