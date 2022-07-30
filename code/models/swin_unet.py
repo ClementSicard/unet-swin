@@ -258,7 +258,7 @@ def test_and_create_sub(
         create_submission(
             test_pred,
             test_filenames,
-            submission_filename=f"./submissions/baseline_unet_submission_{t}.csv",
+            submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
         )
         log(f"Created submission!")
     else:
