@@ -11,7 +11,7 @@ python code/run.py swin-unet \
     --n_epochs $N_EPOCHS \
     --batch_size $BATCH_SIZE \
     --model-type base \
-    --loss focal \
+    --loss patch-f1 \
     --model-save-dir $SCRATCH
 
 python code/run.py swin-unet \
@@ -21,7 +21,7 @@ python code/run.py swin-unet \
     --n_epochs $N_EPOCHS \
     --batch_size $BATCH_SIZE \
     --model-type base \
-    --loss twersky \
+    --loss f1 \
     --model-save-dir $SCRATCH
 
 echo "Done!"
