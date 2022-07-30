@@ -9,6 +9,7 @@ from train import train
 from dataset import OptimizedImageDataset
 from PIL import Image
 import torch
+import torch.nn as nn
 
 from .losses.dice_loss import BinaryDiceLoss
 from .losses.mixed_loss import MixedLoss
@@ -29,7 +30,7 @@ INFERED_SIZES = [(768, 384), (384, 192), (192, 96), (96, 48)]
 INFERED_SIZES_B = [(1024, 512), (512, 256), (256, 128), (128, 64)]
 
 
-class SwinUNet(torch.nn.Module):
+class SwinUNet(nn.Module):
     def __init__(self, model_type: str = "small"):
         assert model_type in {"small", "base"}
         super(SwinUNet, self).__init__()
@@ -38,53 +39,63 @@ class SwinUNet(torch.nn.Module):
         if model_type == "small":
             self.encoder = swin_pretrained_s().to(device)
             self.decoder = Decoder(INFERED_SIZES).to(device)
-            self.prev_conv = torch.nn.Conv2d(
+            self.prev_conv = nn.Conv2d(
                 INFERED_SIZES[0][0],
                 INFERED_SIZES[0][0],
                 kernel_size=3,
                 padding=1,
                 bias=True,
             )
-            self.tail = torch.nn.Sequential(
-                torch.nn.Conv2d(3, INFERED_SIZES[-1][-1], 3, padding=1),
-                torch.nn.ReLU(),
-                torch.nn.BatchNorm2d(INFERED_SIZES[-1][-1]),
-                torch.nn.Conv2d(
+            self.tail = nn.Sequential(
+                nn.Conv2d(3, INFERED_SIZES[-1][-1], 3, padding=1),
+                nn.ReLU(),
+                nn.BatchNorm2d(INFERED_SIZES[-1][-1]),
+                nn.Conv2d(
                     INFERED_SIZES[-1][-1],
                     INFERED_SIZES[-1][-1],
                     kernel_size=3,
                     padding=1,
                 ),
-                torch.nn.ReLU(),
+                nn.ReLU(),
             )
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
-            self.prev_conv = torch.nn.Conv2d(
+            self.prev_conv = nn.Conv2d(
                 INFERED_SIZES_B[0][0],
                 INFERED_SIZES_B[0][0],
                 kernel_size=3,
                 padding=1,
                 bias=True,
             )
-            self.tail = torch.nn.Sequential(
-                torch.nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
-                torch.nn.ReLU(),
-                torch.nn.BatchNorm2d(INFERED_SIZES_B[-1][-1]),
-                torch.nn.Conv2d(
+            self.tail = nn.Sequential(
+                nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
+                nn.ReLU(),
+                nn.BatchNorm2d(INFERED_SIZES_B[-1][-1]),
+                nn.Conv2d(
                     INFERED_SIZES_B[-1][-1],
                     INFERED_SIZES_B[-1][-1],
                     kernel_size=3,
                     padding=1,
                 ),
-                torch.nn.ReLU(),
+                nn.ReLU(),
             )
-        self.head = torch.nn.Sequential(
-            torch.nn.Conv2d(self.decoder.last_convs[-2].out_channels, 1, 1),
-            torch.nn.Sigmoid(),
+        self.last_n_channels = self.decoder.last_convs[-2].out_channels
+        self.head = nn.Sequential(
+            nn.Conv2d(self.last_n_channels,
+                      self.last_n_channels // 2, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(self.last_n_channels // 2),
+            nn.Conv2d(self.last_n_channels // 2,
+                      self.last_n_channels // 2, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(self.last_n_channels // 2),
+            nn.Conv2d(self.last_n_channels // 2, 3, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(3),
+            nn.Conv2d(3, 1, 1),
+            nn.Sigmoid(),
         )
-
-        # self.fully_connected = torch.nn.Linear(16 * 16, 1)
 
     def forward(self, x):
         x_tail = self.tail(x)
@@ -219,7 +230,6 @@ def test_and_create_sub(
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
     test_images = load_all_from_path(test_path)
-    print(test_images.flatten().max())
     batch_size = test_images.shape[0]
     size = test_images.shape[1:3]
 
@@ -274,7 +284,6 @@ def test_and_create_sub(
         log("Resizing test images...")
         test_images = np.stack([img for img in test_images], 0)
         test_images = test_images[:, :, :, :3]
-        print(test_images.flatten().max())
         # test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
         log("Making predictions...")
         with torch.no_grad():
@@ -291,7 +300,6 @@ def test_and_create_sub(
             os.makedirs("tmp", exist_ok=True)
             for i, image in enumerate(tqdm(test_images)):
                 # np_image = image.cpu().numpy()
-                print("Single image : ", image.flatten().max())
                 a = Image.fromarray((image * 255).astype(np.uint8))
                 # plt.imshow(a)
                 # plt.show()
@@ -323,6 +331,7 @@ def test_and_create_sub(
                     cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
                     for c_img in cropped_image
                 ]
+
                 # save cropped to file
                 cv2.imwrite("tmp/{}.png".format(i),
                             (resized_image[0] * 255).astype(np.uint8))
@@ -365,7 +374,7 @@ def test_and_create_sub(
                 # save pred to file
                 cv2.imwrite(f"tmp/pred_{i}.png",
                             (full_pred * 255).astype(np.uint8))
-                exit()
+                # exit()
 
             # test_pred = [model(t).detach().cpu().numpy()
             #              for t in tqdm(test_images.unsqueeze(1))]
