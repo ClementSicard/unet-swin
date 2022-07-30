@@ -34,9 +34,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--just-resize",
-        type=bool,
-        required=True,
         action="store_true",
+        default=False,
         help="If we just resize the image",
     )
 
