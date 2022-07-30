@@ -184,7 +184,11 @@ def run(
     )
 
     log("Training done!")
+    test_and_create_sub(test_path, best_weights_path, model_type)
 
+
+def test_and_create_sub(test_path: str, model_path: str = None, model_type: str = "small"):
+    device = ("cuda" if torch.cuda.is_available() else "cpu")
     log("Predicting on test set...")
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
@@ -199,10 +203,11 @@ def run(
     log("Making predictions...")
 
     with torch.no_grad():
-        if best_weights_path:
-            checkpoint = torch.load(best_weights_path)
+        model = SwinUNet(model_type=model_type).to(device)
+        if model_path:
+            checkpoint = torch.load(model_path)
             model.load_state_dict(checkpoint["model_state_dict"])
-            log(f"Loaded best model weights ({best_weights_path})")
+            log(f"Loaded best model weights ({model_path})")
         else:
             log("DEBUG: No best weights path using default weights")
 
