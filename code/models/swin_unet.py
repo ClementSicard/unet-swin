@@ -110,18 +110,10 @@ def run(
         "cuda" if torch.cuda.is_available() else "cpu"
     )  # automatically select device
     train_dataset = OptimizedImageDataset(
-        train_path,
-        device,
-        augment=True,
-        crop=True,
-        crop_size=208,
+        train_path, device, augment=True, crop=True, crop_size=208, type_="training"
     )
     val_dataset = OptimizedImageDataset(
-        val_path,
-        device,
-        augment=True,
-        crop=True,
-        crop_size=208,
+        val_path, device, augment=True, crop=True, crop_size=208, type_="validation"
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -187,8 +179,10 @@ def run(
     test_and_create_sub(test_path, best_weights_path, model_type)
 
 
-def test_and_create_sub(test_path: str, model_path: str = None, model_type: str = "small"):
-    device = ("cuda" if torch.cuda.is_available() else "cpu")
+def test_and_create_sub(
+    test_path: str, model_path: str = None, model_type: str = "small"
+):
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     log("Predicting on test set...")
     test_path = os.path.join(test_path, "images")
     test_filenames = glob(test_path + "/*.png")
@@ -222,23 +216,23 @@ def test_and_create_sub(test_path: str, model_path: str = None, model_type: str 
             # splits the image into 4 equal patches
             cropped_image = [
                 np_image[0:CROP_SIZE, 0:CROP_SIZE, :],
-                np_image[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :],
-                np_image[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
-                np_image[CROP_SIZE: 2 * CROP_SIZE,
-                         CROP_SIZE: 2 * CROP_SIZE, :],
+                np_image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                np_image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                np_image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
             ]
 
             # resize the patches to the same size as the training images
-            resized_image = [cv2.resize(c_img, dsize=(
-                RESIZE_SIZE, RESIZE_SIZE)) for c_img in cropped_image]
+            resized_image = [
+                cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
+                for c_img in cropped_image
+            ]
 
             # create a tensor from the resized patches
             resized_crops = np.stack(resized_image, 0)
 
             # BHWC -> BCHW
             # TODO : ASK IF THIS IS CORRECT CLEMENT
-            resized_crops = np_to_tensor(
-                np.moveaxis(resized_image, -1, 1), device)
+            resized_crops = np_to_tensor(np.moveaxis(resized_image, -1, 1), device)
 
             # predict the segmentation
             # res has shape (4, H, W)
@@ -249,14 +243,14 @@ def test_and_create_sub(test_path: str, model_path: str = None, model_type: str 
             full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
                 res[0], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+            full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
                 res[1], dsize=(CROP_SIZE, CROP_SIZE)
             )
-            full_pred[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE] = cv2.resize(
+            full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE] = cv2.resize(
                 res[2], dsize=(CROP_SIZE, CROP_SIZE)
             )
             full_pred[
-                CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE
+                CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE
             ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
 
             test_pred.append(full_pred)
@@ -266,12 +260,10 @@ def test_and_create_sub(test_path: str, model_path: str = None, model_type: str 
 
         test_pred = np.concatenate(test_pred, 0)
         test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-        test_pred = np.stack([img for img in test_pred],
-                             0)  # resize to original shape
+        test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
         # Now compute labels
         test_pred = test_pred.reshape(
-            (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
-             size[0] // PATCH_SIZE, PATCH_SIZE)
+            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
         )
         test_pred = np.moveaxis(test_pred, 2, 3)
         test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
