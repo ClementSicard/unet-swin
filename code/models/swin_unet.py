@@ -89,10 +89,6 @@ class SwinUNet(nn.Module):
             nn.Conv2d(self.last_n_channels // 2,
                       self.last_n_channels // 2, 3, padding=1),
             nn.ReLU(),
-            nn.BatchNorm2d(self.last_n_channels // 2),
-            nn.Conv2d(self.last_n_channels // 2, 3, 1),
-            nn.ReLU(),
-            nn.BatchNorm2d(3),
             nn.Conv2d(3, 1, 1),
             nn.Sigmoid(),
         )
