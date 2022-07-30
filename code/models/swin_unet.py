@@ -61,13 +61,7 @@ class SwinUNet(nn.Module):
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
-            # self.prev_conv = nn.Conv2d(
-            #     INFERED_SIZES_B[0][0],
-            #     INFERED_SIZES_B[0][0],
-            #     kernel_size=3,
-            #     padding=1,
-            #     bias=True,
-            # )
+
             self.tail = nn.Sequential(
                 nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
                 nn.BatchNorm2d(INFERED_SIZES_B[-1][-1]),
