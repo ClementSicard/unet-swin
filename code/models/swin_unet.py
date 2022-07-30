@@ -304,6 +304,8 @@ def test_and_create_sub(
                     cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
                     for c_img in cropped_image
                 ]
+                # save cropped to file
+                cv2.imwrite("crops/{}.png".format(i), resized_image[0])
 
                 # create a tensor from the resized patches
                 resized_crops = np.stack(resized_image, 0)
