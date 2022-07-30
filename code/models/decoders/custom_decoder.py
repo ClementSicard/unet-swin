@@ -69,7 +69,7 @@ class Decoder(nn.Module):
                         kernel_size_up=3,
                         up_padding=1,
                         stride_up=2,
-                        kernel_size=3,)
+                        kernel_size=3,).to(device)
                 )
             else:
                 self.blocks.append(
