@@ -200,8 +200,14 @@ def run(
     test_and_create_sub(test_path, best_weights_path, model_type)
 
 
+INPUT_SIZE = 208
+
+
 def test_and_create_sub(
-    test_path: str, model_path: str = None, model_type: str = "small"
+    test_path: str,
+    model_path: str = None,
+    model_type: str = "small",
+    just_resize: bool = False,
 ):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     log("Predicting on test set...")
@@ -210,78 +216,35 @@ def test_and_create_sub(
     test_images = load_all_from_path(test_path)
     batch_size = test_images.shape[0]
     size = test_images.shape[1:3]
-    # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
-    log("Resizing test images...")
-    test_images = np.stack([img for img in test_images], 0)
-    test_images = test_images[:, :, :, :3]
-    test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
-    log("Making predictions...")
 
-    with torch.no_grad():
-        model = SwinUNet(model_type=model_type).to(device)
-        if model_path:
-            checkpoint = torch.load(model_path, map_location=device)
-            model.load_state_dict(checkpoint["model_state_dict"])
-            log(f"Loaded best model weights ({model_path})")
-        else:
-            log("DEBUG: No best weights path using default weights")
+    if just_resize:
+        # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
+        log("Resizing test images...")
+        test_images = np.stack(
+            [cv2.resize(img, dsize=(INPUT_SIZE, INPUT_SIZE)) for img in test_images], 0
+        )
+        test_images = test_images[:, :, :, :3]
+        test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
+        log("Making predictions...")
 
-        test_pred = []
-        CROP_SIZE = 200
-        RESIZE_SIZE = 208
-        for image in tqdm(test_images):
-            np_image = image.cpu().numpy()
-            # move channels to last axis
-            np_image = np.moveaxis(np_image, 0, -1)
+        with torch.no_grad():
+            model = SwinUNet(model_type=model_type).to(device)
+            if model_path:
+                checkpoint = torch.load(model_path, map_location=device)
+                model.load_state_dict(checkpoint["model_state_dict"])
+                log(f"Loaded best model weights ({model_path})")
+            else:
+                log("DEBUG: No best weights path using default weights")
 
-            # splits the image into 4 equal patches
-            cropped_image = [
-                np_image[0:CROP_SIZE, 0:CROP_SIZE, :],
-                np_image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
-                np_image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
-                np_image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+            test_pred = [
+                model(t).detach().cpu().numpy() for t in tqdm(test_images.unsqueeze(1))
             ]
-
-            # resize the patches to the same size as the training images
-            resized_image = [
-                cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
-                for c_img in cropped_image
-            ]
-
-            # create a tensor from the resized patches
-            resized_crops = np.stack(resized_image, 0)
-
-            # BHWC -> BCHW
-            # TODO : ASK IF THIS IS CORRECT CLEMENT
-            resized_crops = np_to_tensor(np.moveaxis(resized_image, -1, 1), device)
-
-            # predict the segmentation
-            # res has shape (4, H, W)
-            res = model(resized_crops).detach().cpu().numpy().squeeze(axis=1)
-
-            full_pred = np.zeros((400, 400))
-
-            full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
-                res[0], dsize=(CROP_SIZE, CROP_SIZE)
-            )
-            full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
-                res[1], dsize=(CROP_SIZE, CROP_SIZE)
-            )
-            full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE] = cv2.resize(
-                res[2], dsize=(CROP_SIZE, CROP_SIZE)
-            )
-            full_pred[
-                CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE
-            ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
-
-            test_pred.append(full_pred)
-
-        # test_pred = [model(t).detach().cpu().numpy()
-        #              for t in tqdm(test_images.unsqueeze(1))]
 
         test_pred = np.concatenate(test_pred, 0)
         test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
-        test_pred = np.stack([img for img in test_pred], 0)  # resize to original shape
+        test_pred = np.stack(
+            [cv2.resize(img, dsize=size) for img in test_pred], 0
+        )  # resize to original shape
         # Now compute labels
         test_pred = test_pred.reshape(
             (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
@@ -290,11 +253,107 @@ def test_and_create_sub(
         test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
         log(f"Test predictions shape: {test_pred.shape}")
         now = datetime.now()
-        t = now.strftime("%Y-%m-%d_%H-%M-%S")
+        t = now.strftime("%Y-%m-%d_%H:%M:%S")
         os.makedirs("submissions", exist_ok=True)
         create_submission(
             test_pred,
             test_filenames,
-            submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
+            submission_filename=f"./submissions/baseline_unet_submission_{t}.csv",
         )
         log(f"Created submission!")
+    else:
+        # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
+        log("Resizing test images...")
+        test_images = np.stack([img for img in test_images], 0)
+        test_images = test_images[:, :, :, :3]
+        test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
+        log("Making predictions...")
+        with torch.no_grad():
+            model = SwinUNet(model_type=model_type).to(device)
+            if model_path:
+                checkpoint = torch.load(model_path, map_location=device)
+                model.load_state_dict(checkpoint["model_state_dict"])
+                log(f"Loaded best model weights ({model_path})")
+            else:
+                log("DEBUG: No best weights path using default weights")
+
+            test_pred = []
+            CROP_SIZE = 200
+            RESIZE_SIZE = 208
+            for image in tqdm(test_images):
+                np_image = image.cpu().numpy()
+                # move channels to last axis
+                np_image = np.moveaxis(np_image, 0, -1)
+
+                # splits the image into 4 equal patches
+                cropped_image = [
+                    np_image[0:CROP_SIZE, 0:CROP_SIZE, :],
+                    np_image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                    np_image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                    np_image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                ]
+
+                # resize the patches to the same size as the training images
+                resized_image = [
+                    cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
+                    for c_img in cropped_image
+                ]
+
+                # create a tensor from the resized patches
+                resized_crops = np.stack(resized_image, 0)
+
+                # BHWC -> BCHW
+                # TODO : ASK IF THIS IS CORRECT CLEMENT
+                resized_crops = np_to_tensor(np.moveaxis(resized_image, -1, 1), device)
+
+                # predict the segmentation
+                # res has shape (4, H, W)
+                res = model(resized_crops).detach().cpu().numpy().squeeze(axis=1)
+
+                full_pred = np.zeros((400, 400))
+
+                full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+                    res[0], dsize=(CROP_SIZE, CROP_SIZE)
+                )
+                full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+                    res[1], dsize=(CROP_SIZE, CROP_SIZE)
+                )
+                full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE] = cv2.resize(
+                    res[2], dsize=(CROP_SIZE, CROP_SIZE)
+                )
+                full_pred[
+                    CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE
+                ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
+
+                test_pred.append(full_pred)
+
+            # test_pred = [model(t).detach().cpu().numpy()
+            #              for t in tqdm(test_images.unsqueeze(1))]
+
+            test_pred = np.concatenate(test_pred, 0)
+            test_pred = np.moveaxis(test_pred, 1, -1)  # CHW to HWC
+            test_pred = np.stack(
+                [img for img in test_pred], 0
+            )  # resize to original shape
+            # Now compute labels
+            test_pred = test_pred.reshape(
+                (
+                    -1,
+                    size[0] // PATCH_SIZE,
+                    PATCH_SIZE,
+                    size[0] // PATCH_SIZE,
+                    PATCH_SIZE,
+                )
+            )
+            test_pred = np.moveaxis(test_pred, 2, 3)
+            test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
+            log(f"Test predictions shape: {test_pred.shape}")
+            now = datetime.now()
+            t = now.strftime("%Y-%m-%d_%H-%M-%S")
+            os.makedirs("submissions", exist_ok=True)
+            create_submission(
+                test_pred,
+                test_filenames,
+                submission_filename=f"./submissions/swin_unet_submission_{t}.csv",
+            )
+            log(f"Created submission!")
