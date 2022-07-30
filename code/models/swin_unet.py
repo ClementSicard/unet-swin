@@ -285,6 +285,7 @@ def test_and_create_sub(
             test_pred = []
             CROP_SIZE = 200
             RESIZE_SIZE = 208
+            os.makedirs("tmp", exist_ok=True)
             for i, image in enumerate(tqdm(test_images)):
                 np_image = image.cpu().numpy()
                 # move channels to last axis
@@ -299,7 +300,7 @@ def test_and_create_sub(
                              CROP_SIZE: 2 * CROP_SIZE, :],
                 ]
 
-                cv2.imwrite(f"{i}_crops.png", np_image)
+                cv2.imwrite(f"tmp/{i}_crops.png", np_image)
 
                 # resize the patches to the same size as the training images
                 resized_image = [
@@ -307,7 +308,7 @@ def test_and_create_sub(
                     for c_img in cropped_image
                 ]
                 # save cropped to file
-                cv2.imwrite("{}.png".format(i), resized_image[0])
+                cv2.imwrite("tmp/{}.png".format(i), resized_image[0])
 
                 # create a tensor from the resized patches
                 resized_crops = np.stack(resized_image, 0)
@@ -339,8 +340,8 @@ def test_and_create_sub(
 
                 test_pred.append(full_pred)
                 # save pred to file
-                cv2.imwrite(f"pred_{i}.png", full_pred)
-                # i += 1
+                cv2.imwrite(f"tmp/pred_{i}.png", full_pred)
+                exit()
 
             # test_pred = [model(t).detach().cpu().numpy()
             #              for t in tqdm(test_images.unsqueeze(1))]
