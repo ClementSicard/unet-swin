@@ -285,7 +285,7 @@ def test_and_create_sub(
             test_pred = []
             CROP_SIZE = 200
             RESIZE_SIZE = 208
-            for image in tqdm(test_images):
+            for i, image in enumerate(tqdm(test_images)):
                 np_image = image.cpu().numpy()
                 # move channels to last axis
                 np_image = np.moveaxis(np_image, 0, -1)
@@ -334,6 +334,9 @@ def test_and_create_sub(
                 ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
 
                 test_pred.append(full_pred)
+                # save pred to file
+                cv2.imwrite(f"pred_{i}.png", full_pred)
+                # i += 1
 
             # test_pred = [model(t).detach().cpu().numpy()
             #              for t in tqdm(test_images.unsqueeze(1))]
