@@ -299,6 +299,8 @@ def test_and_create_sub(
                              CROP_SIZE: 2 * CROP_SIZE, :],
                 ]
 
+                cv2.imwrite(f"{i}_crops.png", np_image)
+
                 # resize the patches to the same size as the training images
                 resized_image = [
                     cv2.resize(c_img, dsize=(RESIZE_SIZE, RESIZE_SIZE))
