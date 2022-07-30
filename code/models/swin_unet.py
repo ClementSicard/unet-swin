@@ -115,16 +115,18 @@ def run(
         train_path,
         device,
         augment=True,
-        crop=True,
-        crop_size=208,
+        # crop=True,
+        # crop_size=208,
+        resize_to=(208, 208),
         type_="training",
     )
     val_dataset = OptimizedImageDataset(
         val_path,
         device,
         augment=True,
-        crop=True,
-        crop_size=208,
+        # crop=True,
+        # crop_size=208,
+        resize_to=(208, 208),
         type_="validation",
     )
     train_dataloader = DataLoader(
