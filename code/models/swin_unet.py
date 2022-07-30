@@ -292,7 +292,7 @@ def test_and_create_sub(
                 # move channels to last axis
                 # np_image = np.moveaxis(np_image, 0, -1)
                 print(np_image.shape)
-                cv2.imwrite(np_image)
+                cv2.imwrite(f"tmp/{i}_np_image.png", np_image)
 
                 # splits the image into 4 equal patches
                 cropped_image = [
@@ -303,7 +303,7 @@ def test_and_create_sub(
                              CROP_SIZE: 2 * CROP_SIZE, :],
                 ]
 
-                cv2.imwrite(f"tmp/{i}_crops.png", np_image)
+                cv2.imwrite(f"tmp/{i}_crops.png", cropped_image[0])
 
                 # resize the patches to the same size as the training images
                 resized_image = [
