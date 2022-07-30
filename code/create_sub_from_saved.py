@@ -40,7 +40,7 @@ if __name__ == "__main__":
     if args.model == "swin-unet":
         log("Testing Swin UNet")
         swin_unet.test_and_create_sub(
-            test_path=args.test_path,
+            test_path=args.test_dir,
             model_path=args.model_weights_path,
             model_type=args.model_type,
         )
