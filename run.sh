@@ -1,8 +1,8 @@
 source ~/.bashrc
 conda activate cil
 
-N_EPOCHS=30
-BATCH_SIZE=8
+N_EPOCHS=50
+BATCH_SIZE=16
 
 echo "1st run"
 python code/run.py swin-unet \
@@ -12,7 +12,7 @@ python code/run.py swin-unet \
     --n_epochs $N_EPOCHS \
     --batch_size $BATCH_SIZE \
     --model-type base \
-    --loss focal \
+    --loss twersky \
     --model-save-dir $SCRATCH
 
 echo "Done!"
