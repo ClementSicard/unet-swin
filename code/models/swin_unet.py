@@ -131,7 +131,7 @@ def run(
         augment=True,
         # crop=True,
         # crop_size=208,
-        resize_to=(208, 208),
+        # resize_to=(400, 400),
         type_="training",
     )
     val_dataset = OptimizedImageDataset(
@@ -140,7 +140,7 @@ def run(
         augment=True,
         # crop=True,
         # crop_size=208,
-        resize_to=(208, 208),
+        # resize_to=(400, 400),
         type_="validation",
     )
     train_dataloader = DataLoader(
