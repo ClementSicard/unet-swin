@@ -88,8 +88,8 @@ class SwinUNet(nn.Module):
     def forward(self, x):
         x_tail = self.tail(x)
         x = self.encoder(x)
-        self.encoder.x_int.reverse()
-        x = self.decoder(x, self.encoder.x_int[:] + [x_tail])
+        self.encoder.x_skips.reverse()
+        x = self.decoder(x, self.encoder.x_skips + [x_tail])
 
         return self.head(x)
 

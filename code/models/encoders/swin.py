@@ -4,17 +4,21 @@ from typing import List, Optional, Union, Any, Dict
 from torchvision.models._api import WeightsEnum
 from torchvision.models._utils import V
 
+"""
+Construct a SwinTransformer from the torchvision package
+We override the SwinTransformer class to add the ability to save intermediary steps
+Therefore we can leverage skip connections in the encoder and decoder
+"""
+
 
 class IntSwinS(SwinTransformer):
     def forward(self, x):
-        # self.x_int = [x]
-        self.x_int = []
+        self.x_skips = []
         for i in range(len(self.features)):
             x = self.features[i](x)
             if i % 2 == 1 and i < len(self.features) - 2:
                 # We don't want to the last one as it is the output
-                self.x_int.append(x.permute(0, 3, 1, 2))
-
+                self.x_skips.append(x.permute(0, 3, 1, 2))
         return x.permute(0, 3, 1, 2)
 
 
