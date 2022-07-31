@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import torch.nn as nn
+
 # PyTorch
 ALPHA = 0.8
 GAMMA = 2
@@ -20,8 +21,8 @@ class FocalLoss(nn.Module):
         targets = targets.view(-1)
 
         # first compute binary cross-entropy
-        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        BCE = F.binary_cross_entropy(inputs, targets, reduction="mean")
         BCE_EXP = torch.exp(-BCE)
-        focal_loss = alpha * (1-BCE_EXP)**gamma * BCE
+        focal_loss = alpha * (1 - BCE_EXP) ** gamma * BCE
 
         return focal_loss

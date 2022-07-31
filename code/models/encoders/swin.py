@@ -26,7 +26,8 @@ def _ovewrite_named_param(kwargs: Dict[str, Any], param: str, new_value: V) -> N
     if param in kwargs:
         if kwargs[param] != new_value:
             raise ValueError(
-                f"The parameter '{param}' expected value {new_value} but got {kwargs[param]} instead.")
+                f"The parameter '{param}' expected value {new_value} but got {kwargs[param]} instead."
+            )
     else:
         kwargs[param] = new_value
 
@@ -43,8 +44,7 @@ def _swin_transformer(
     **kwargs: Any,
 ) -> SwinTransformer:
     if weights is not None:
-        _ovewrite_named_param(kwargs, "num_classes",
-                              len(weights.meta["categories"]))
+        _ovewrite_named_param(kwargs, "num_classes", len(weights.meta["categories"]))
 
     model = IntSwinS(
         patch_size=patch_size,
@@ -62,7 +62,9 @@ def _swin_transformer(
     return model
 
 
-def swin_s(*, weights: Optional[Swin_S_Weights] = None, progress: bool = True, **kwargs: Any) -> SwinTransformer:
+def swin_s(
+    *, weights: Optional[Swin_S_Weights] = None, progress: bool = True, **kwargs: Any
+) -> SwinTransformer:
     """
     Constructs a swin_small architecture from
     `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows <https://arxiv.org/pdf/2103.14030>`_.
@@ -96,7 +98,9 @@ def swin_s(*, weights: Optional[Swin_S_Weights] = None, progress: bool = True, *
     )
 
 
-def swin_b(*, weights: Optional[Swin_B_Weights] = None, progress: bool = True, **kwargs: Any) -> SwinTransformer:
+def swin_b(
+    *, weights: Optional[Swin_B_Weights] = None, progress: bool = True, **kwargs: Any
+) -> SwinTransformer:
     """
     Constructs a swin_base architecture from
     `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows <https://arxiv.org/pdf/2103.14030>`_.

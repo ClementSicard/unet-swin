@@ -7,8 +7,7 @@ class Block(nn.Module):
     def __init__(self, in_ch, out_ch):
         super().__init__()
         self.block = nn.Sequential(
-            nn.Conv2d(in_channels=in_ch, out_channels=out_ch,
-                      kernel_size=3, padding=1),
+            nn.Conv2d(in_channels=in_ch, out_channels=out_ch, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(out_ch),
             nn.Conv2d(
@@ -34,16 +33,18 @@ class DecoderBlock(nn.Module):
         super(DecoderBlock, self).__init__()
 
         self.up = nn.ConvTranspose2d(
-            down_channels, up_channels, kernel_size=kernel_size_up, stride=stride_up, padding=up_padding
+            down_channels,
+            up_channels,
+            kernel_size=kernel_size_up,
+            stride=stride_up,
+            padding=up_padding,
         )
 
         self.block = nn.Sequential(
-            nn.Conv2d(down_channels, up_channels,
-                      kernel_size=kernel_size, padding=1),
+            nn.Conv2d(down_channels, up_channels, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(up_channels),
-            nn.Conv2d(up_channels, up_channels,
-                      kernel_size=kernel_size, padding=1),
+            nn.Conv2d(up_channels, up_channels, kernel_size=kernel_size, padding=1),
             nn.ReLU(),
         )
 
@@ -69,7 +70,8 @@ class Decoder(nn.Module):
                         kernel_size_up=3,
                         up_padding=1,
                         stride_up=2,
-                        kernel_size=3,).to(device)
+                        kernel_size=3,
+                    ).to(device)
                 )
             else:
                 self.blocks.append(
@@ -85,18 +87,18 @@ class Decoder(nn.Module):
         FINAL_CHANNEL = sizes[-1][-1]
         self.last_upX4 = nn.Sequential(
             nn.ConvTranspose2d(
-                FINAL_CHANNEL*2, FINAL_CHANNEL*2, kernel_size=2, stride=2),
+                FINAL_CHANNEL * 2, FINAL_CHANNEL * 2, kernel_size=2, stride=2
+            ),
             nn.ConvTranspose2d(
-                FINAL_CHANNEL*2, FINAL_CHANNEL, kernel_size=2, stride=2),
+                FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=2, stride=2
+            ),
         )
         self.last_convs = nn.Sequential(
-            nn.Conv2d(
-                FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=3, padding=1),
+            nn.Conv2d(FINAL_CHANNEL * 2, FINAL_CHANNEL, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.BatchNorm2d(FINAL_CHANNEL),
-            nn.Conv2d(
-                FINAL_CHANNEL, FINAL_CHANNEL, kernel_size=3, padding=1),
-            nn.ReLU()
+            nn.Conv2d(FINAL_CHANNEL, FINAL_CHANNEL, kernel_size=3, padding=1),
+            nn.ReLU(),
         )
 
     def forward(self, x, skips):

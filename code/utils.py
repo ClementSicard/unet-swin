@@ -83,7 +83,7 @@ def log(message: str, print_message=True):
     if print_message:
         print(message)
     # If OS is not Windows
-    if not os.name == "nt":
+    if not os.name == "nt" and False:
         t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         to_write = f"[{t}]\t{message}"
         command = (

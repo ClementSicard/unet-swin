@@ -46,15 +46,14 @@ def mask_to_submission_strings(image_filename, mask_dir=None):
     mask = np.zeros_like(im_arr)
     for j in range(0, im_arr.shape[1], patch_size):
         for i in range(0, im_arr.shape[0], patch_size):
-            patch = im_arr[i: i + patch_size, j: j + patch_size]
+            patch = im_arr[i : i + patch_size, j : j + patch_size]
             label = patch_to_label(patch)
-            mask[i: i + patch_size, j: j + patch_size] = int(label * 255)
+            mask[i : i + patch_size, j : j + patch_size] = int(label * 255)
             yield ("{:03d}_{}_{},{}".format(img_number, j, i, label))
 
     if mask_dir:
         save_mask_as_img(
-            mask, os.path.join(mask_dir, "mask_" +
-                               image_filename.split("/")[-1])
+            mask, os.path.join(mask_dir, "mask_" + image_filename.split("/")[-1])
         )
 
 
