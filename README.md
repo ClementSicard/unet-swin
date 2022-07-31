@@ -1,17 +1,17 @@
 # Road Segmentation Project - Computational Intelligence Lab (2022)
 
 - [Road Segmentation Project - Computational Intelligence Lab (2022)](#road-segmentation-project---computational-intelligence-lab-2022)
-  - [Set up the environnement](#set-up-the-environnement)
-  - [Run the baselines](#run-the-baselines)
-    - [Our runs to obtain the scores in the paper](#our-runs-to-obtain-the-scores-in-the-paper)
-      - [Support Vector Classifier baseline (`baseline-svc`)](#support-vector-classifier-baseline-baseline-svc)
-      - [Patch-CNN baseline (`baseline-patch-cnn`)](#patch-cnn-baseline-baseline-patch-cnn)
-      - [Vanilla-UNet baseline (`baseline-unet`)](#vanilla-unet-baseline-baseline-unet)
-  - [Load le dataset augmenté](#load-le-dataset-augmenté)
-  - [Sources](#sources)
-  - [Dataset](#dataset)
-    - [Augmenter le dataset](#augmenter-le-dataset)
-  - [Liens utiles](#liens-utiles)
+	- [Set up the environnement](#set-up-the-environnement)
+	- [Download data](#download-data)
+	- [Run the code](#run-the-code)
+		- [Run the baselines](#run-the-baselines)
+			- [Support Vector Classifier baseline (`baseline-svc`)](#support-vector-classifier-baseline-baseline-svc)
+			- [Patch-CNN baseline (`baseline-patch-cnn`)](#patch-cnn-baseline-baseline-patch-cnn)
+			- [Vanilla-UNet baseline (`baseline-unet`)](#vanilla-unet-baseline-baseline-unet)
+		- [Run our models](#run-our-models)
+			- [Fine-tuning UNet (`unet`)](#fine-tuning-unet-unet)
+			- [USwinBaseNet (`swin-unet`)](#uswinbasenet-swin-unet)
+	- [Create an ensemble submission](#create-an-ensemble-submission)
 
 ## Set up the environnement
 
@@ -24,25 +24,64 @@ pip install -r requirements.txt
 pre-commit install
 ```
 
-## Run the baselines
+## Download data
 
-From the **root of this folder**:
+From the root of this repository:
 
 ```bash
-python code/run.py "name of the baseline" \
-  --train-dir "data/training" \
-  --test-dir "data/test" \
-  --val-dir "data/validation" \
-  --n_epochs 20
+kaggle competitions download -c cil-road-segmentation-2022
+unzip cil-road-segmentation-2022.zip
+mkdir data
+mv training data
+mv test data
 ```
 
-with the names in
+Then with `python`:
 
 ```python
-{"baseline-svc", "baseline-unet", "baseline-patch-cnn"}
+from glob import sample
+import os
+
+VAL_SIZE = 10
+
+for img in sample(glob("data/training/images/*.png"), VAL_SIZE):
+	os.rename(img, img.replace('training', 'validation'))
+	mask = img.replace('images', 'groundtruth')
+	os.rename(mask, mask.replace('training', 'validation'))
+
 ```
 
-### Our runs to obtain the scores in the paper
+## Run the code
+
+The `code/run.py` script runs with the following arguments, and **needs to be executed from root directoy of this repo**:
+
+```bash
+python code/run.py 	[-h] [--model-type {small,base}]
+			[--loss {bce,dice,mixed,focal,twersky,f1,patch-f1}]
+			--train-dir TRAIN_DIR [--model-save-dir MODEL_SAVE_DIR] [--no-augment]
+			--val-dir VAL_DIR --test-dir TEST_DIR [--n_epochs N_EPOCHS]
+			[--batch_size BATCH_SIZE] [--checkpoint_path CHECKPOINT_PATH]
+			{baseline-svc,baseline-unet,baseline-patch-cnn,unet,swin-unet}
+```
+
+| Argument               | Description                                                                                                |                                  Choices                                   |    Default value     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------: | :------------------: |
+| `model` (_positional_) | Model to use for training                                                                                  | `baseline-svc`, `baseline-unet`, `baseline-patch-cnn`, `unet`, `swin-unet` |          -           |
+| `--train-dir`          | Path to the training directory                                                                             |                                     -                                      | `None`, **required** |
+| `--val-dir`            | Path to the validation directory                                                                           |                                     -                                      | `None`, **required** |
+| `--test-dir`           | Path to the validation directory                                                                           |                                     -                                      | `None`, **required** |
+| `--model-save-dir`     | Path where the model will be saved                                                                         |                                     -                                      |         `.`          |
+| `--model-save-dir`     | Path where the model will be saved                                                                         |                                     -                                      |         `.`          |
+| `--no-augment`         | If added to the command, the dataset will not be augmented (i.e. the initial dataset will be used instead) |                                     -                                      |         `.`          |
+| `--n_epochs`           | Number of epochs to train on                                                                               |                                     -                                      |        `100`         |
+| `--batch_size`         | Path of a model checkpoint to load to resume training                                                      |                                     -                                      |        `128`         |
+| `--model-type`         | For model `swin-unet` (will be ignored otherwise), to select which pre-trained model we would like to use  |                              `small`, `base`                               |        `base`        |
+| `--checkpoint_path`    | Path of a model checkpoint to load to resume training                                                      |                                     -                                      |        `None`        |
+| `-l`, `--loss`         | Loss to train with                                                                                         |        `bce`, `dice`, `mixed`, `focal`, `twersky`, `f1`, `patch-f1`        |        `bce`         |
+
+### Run the baselines
+
+From the **root of this folder**:
 
 #### Support Vector Classifier baseline ([`baseline-svc`](code/models/baselines/baseline_svm_classifier.py))
 
@@ -67,47 +106,67 @@ python code/run.py baseline-patch-cnn \
 #### Vanilla-UNet baseline ([`baseline-unet`](code/models/baselines/baseline_vanilla_unet.py))
 
 ```bash
+SAVE_DIR="<where you want the best weights to be stored>"
+
 python code/run.py baseline-unet \
   --train-dir "data/training" \
   --test-dir "data/test" \
   --val-dir "data/validation" \
   --n_epochs 35 \
-  --batch_size 4 # Might be modified when ran on Euler
+  --batch_size 4 \
+  --model-save-dir $SAVE_DIR
 ```
 
-## Load le dataset augmenté
+### Run our models
 
-```python
-from utils import *
+#### Fine-tuning UNet ([`unet`](code/models/swin_unet.py))
 
-BATCH_SIZE = 32
-device = get_best_available_device()
+Basic usage:
 
-dataset = ImageDataset(path="../data/training/", device=device, use_patches=False)
-dataloader = iter(DataLoader(dataset, batch_size=32, shuffle=True))
+```bash
+SAVE_DIR="<where you want the best weights to be stored>"
+N_EPOCHS=200
+BATCH_SIZE=4
+LOSS="<choose your loss>"
+
+python code/run.py unet \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+  --loss $LOSS \
+  --n_epochs $N_EPOCHS \
+  --batch_size $BATCH_SIZE \
+  --model-save-dir $SAVE_DIR
 ```
 
-Pour itérer sur les paires image/mask du `DataLoader`:
+#### USwinBaseNet ([`swin-unet`](code/models/swin_unet.py))
 
-```python
-batch = next(dataloader)
+[Link to the paper](Paper%20report.pdf)
 
-for image, mask in zip(batch[0], batch[1]):
-    plt.imshow(image.to('cpu').numpy().transpose(1, 2, 0))
-    plt.imshow(mask.to('cpu').numpy().transpose(1, 2, 0), alpha=0.3)
-    plt.show()
+Basic usage:
+
+```bash
+SAVE_DIR="<where you want the best weights to be stored>"
+N_EPOCHS=200
+BATCH_SIZE=2
+LOSS="<choose your loss>"
+
+python code/run.py swin-unet \
+  --train-dir "data/training" \
+  --test-dir "data/test" \
+  --val-dir "data/validation" \
+  --loss $LOSS \
+  --n_epochs $N_EPOCHS \
+  --batch_size $BATCH_SIZE \
+  --model-save-dir $SAVE_DIR
 ```
 
-## Sources
+## Create an ensemble submission
 
-## Dataset
+You can make create an ensemble submission with this Python script, with which you can add as many `.csv` files as you want.
 
-### Augmenter le dataset
+The final result is determined by majority vote.
 
-- [Lien du tuto PyTorch](https://pytorch.org/tutorials/beginner/data_loading_tutorial.html#transforms)
-
-## Liens utiles
-
-[Semester Project Infos](https://docs.google.com/document/d/1kXMPYBRJYzMQNceVUpsaQBSMec8kuaAHiIRGQuG9DQA/edit)
-[Road Segmentation Infos](https://docs.google.com/document/d/1MVRFu4oKWgAluY7CRzehFH8Pt-TNSW_9JJ6E9gmraZg/edit#heading=h.go9uiolcl982)
-[Kaggle Competition](https://www.kaggle.com/t/32523d9cf29948e089dc4c7a23ecf549)
+```bash
+python tools/create_ensemble_submission.py file1.csv file2.csv ... -o "submission/ensemble.csv"
+```
