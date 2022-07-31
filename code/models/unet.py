@@ -120,7 +120,7 @@ def run(
         device=device,
         # resize_to=(384, 384),
         crop_size=384,
-        crop=True,
+        crop=crop,
         type_="validation",
         augment=augment,
     )
