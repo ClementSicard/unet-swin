@@ -29,11 +29,12 @@ class DecoderBlock(nn.Module):
         kernel_size_up,
         stride_up,
         kernel_size,
+        up_padding=0,
     ):
         super(DecoderBlock, self).__init__()
 
         self.up = nn.ConvTranspose2d(
-            down_channels, up_channels, kernel_size=kernel_size_up, stride=stride_up
+            down_channels, up_channels, kernel_size=kernel_size_up, stride=stride_up, padding=up_padding
         )
 
         self.block = nn.Sequential(
@@ -49,10 +50,6 @@ class DecoderBlock(nn.Module):
     def forward(self, x, skip):
         # print(x.shape, skip.shape, self.up(x).shape, flush=True)
         x = self.up(x)
-        if x.shape[2] > skip.shape[2]:
-            # when x is [batch, channels, 13, 13] to [batch, channels, 25, 25]
-            # we have to crop it
-            x = x[:, :, :-1, :-1]
         x = torch.cat([x, skip], dim=1)
         x = self.block(x)
         return x
@@ -63,17 +60,28 @@ class Decoder(nn.Module):
         super().__init__()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.blocks = []
-        for size in sizes:
-            self.blocks.append(
-                DecoderBlock(
-                    size[0],
-                    size[1],
-                    kernel_size_up=2,
-                    stride_up=2,
-                    kernel_size=3,
-                    # dropout=0.0,
-                ).to(device)
-            )
+        for i, size in enumerate(sizes):
+            if i == 0:
+                self.blocks.append(
+                    DecoderBlock(
+                        size[0],
+                        size[1],
+                        kernel_size_up=3,
+                        up_padding=1,
+                        stride_up=2,
+                        kernel_size=3,).to(device)
+                )
+            else:
+                self.blocks.append(
+                    DecoderBlock(
+                        size[0],
+                        size[1],
+                        kernel_size_up=2,
+                        stride_up=2,
+                        kernel_size=3,
+                        # dropout=0.0,
+                    ).to(device)
+                )
         FINAL_CHANNEL = sizes[-1][-1]
         self.last_upX4 = nn.Sequential(
             nn.ConvTranspose2d(

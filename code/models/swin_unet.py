@@ -61,17 +61,11 @@ class SwinUNet(nn.Module):
         else:
             self.encoder = swin_pretrained_b().to(device)
             self.decoder = Decoder(sizes=INFERED_SIZES_B).to(device)
-            # self.prev_conv = nn.Conv2d(
-            #     INFERED_SIZES_B[0][0],
-            #     INFERED_SIZES_B[0][0],
-            #     kernel_size=3,
-            #     padding=1,
-            #     bias=True,
-            # )
+
             self.tail = nn.Sequential(
                 nn.Conv2d(3, INFERED_SIZES_B[-1][-1], 3, padding=1),
-                nn.ReLU(),
                 nn.BatchNorm2d(INFERED_SIZES_B[-1][-1]),
+                nn.ReLU(),
                 nn.Conv2d(
                     INFERED_SIZES_B[-1][-1],
                     INFERED_SIZES_B[-1][-1],
@@ -111,7 +105,8 @@ def run(
     model_type: str = "small",
     loss: str = "focal",
 ):
-    assert loss in {"bce", "dice", "mixed", "focal", "twersky", "f1", "patch-f1"}
+    assert loss in {"bce", "dice", "mixed",
+                    "focal", "twersky", "f1", "patch-f1"}
     log(f"Training Swin-{model_type.capitalize()}-UNet...")
     device = (
         "cuda" if torch.cuda.is_available() else "cpu"
@@ -204,7 +199,8 @@ def run(
     )
 
     log("Training done!")
-    test_and_create_sub(test_path, best_weights_path, model_type, just_resize=True)
+    test_and_create_sub(test_path, best_weights_path,
+                        model_type, just_resize=True)
 
 
 INPUT_SIZE = 208
@@ -228,7 +224,8 @@ def test_and_create_sub(
         # we also need to resize the test images. This might not be the best ideas depending on their spatial resolution.
         log("Resizing test images...")
         test_images = np.stack(
-            [cv2.resize(img, dsize=(INPUT_SIZE, INPUT_SIZE)) for img in test_images], 0
+            [cv2.resize(img, dsize=(INPUT_SIZE, INPUT_SIZE))
+             for img in test_images], 0
         )
         test_images = test_images[:, :, :, :3]
         test_images = np_to_tensor(np.moveaxis(test_images, -1, 1), device)
@@ -254,7 +251,8 @@ def test_and_create_sub(
         )  # resize to original shape
         # Now compute labels
         test_pred = test_pred.reshape(
-            (-1, size[0] // PATCH_SIZE, PATCH_SIZE, size[0] // PATCH_SIZE, PATCH_SIZE)
+            (-1, size[0] // PATCH_SIZE, PATCH_SIZE,
+             size[0] // PATCH_SIZE, PATCH_SIZE)
         )
         test_pred = np.moveaxis(test_pred, 2, 3)
         test_pred = np.round(np.mean(test_pred, (-1, -2)) > CUTOFF)
@@ -296,18 +294,21 @@ def test_and_create_sub(
                 # move channels to last axis
                 # np_image = np.moveaxis(np_image, 0, -1)
                 print(np_image.shape)
-                cv2.imwrite(f"tmp/{i}_np_image.png", (np_image * 255).astype(np.uint8))
+                cv2.imwrite(f"tmp/{i}_np_image.png",
+                            (np_image * 255).astype(np.uint8))
 
                 # splits the image into 4 equal patches
                 cropped_image = [
                     np_image[0:CROP_SIZE, 0:CROP_SIZE, :],
-                    np_image[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE, :],
-                    np_image[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
-                    np_image[CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE, :],
+                    np_image[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE, :],
+                    np_image[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE, :],
+                    np_image[CROP_SIZE: 2 * CROP_SIZE,
+                             CROP_SIZE: 2 * CROP_SIZE, :],
                 ]
 
                 cv2.imwrite(
-                    f"tmp/{i}_crops.png", (cropped_image[0] * 255).astype(np.uint8)
+                    f"tmp/{i}_crops.png", (cropped_image[0]
+                                           * 255).astype(np.uint8)
                 )
                 # print(cropped_image[0])
                 a = Image.fromarray((cropped_image[0] * 255).astype(np.uint8))
@@ -322,7 +323,8 @@ def test_and_create_sub(
 
                 # save cropped to file
                 cv2.imwrite(
-                    "tmp/{}.png".format(i), (resized_image[0] * 255).astype(np.uint8)
+                    "tmp/{}.png".format(i), (resized_image[0]
+                                             * 255).astype(np.uint8)
                 )
                 a = Image.fromarray((resized_image[0] * 255).astype(np.uint8))
                 # plt.imshow(a)
@@ -334,34 +336,38 @@ def test_and_create_sub(
 
                 # BHWC -> BCHW
                 # TODO : ASK IF THIS IS CORRECT CLEMENT
-                resized_crops = np_to_tensor(np.moveaxis(resized_image, -1, 1), device)
+                resized_crops = np_to_tensor(
+                    np.moveaxis(resized_image, -1, 1), device)
 
                 # predict the segmentation
                 # res has shape (4, H, W)
-                res = model(resized_crops).detach().cpu().numpy().squeeze(axis=1)
+                res = model(resized_crops).detach(
+                ).cpu().numpy().squeeze(axis=1)
 
                 full_pred = np.zeros((400, 400))
                 [
-                    cv2.imwrite(f"tmp/{i}_{j}.png", (res[j] * 255).astype(np.uint8))
+                    cv2.imwrite(f"tmp/{i}_{j}.png",
+                                (res[j] * 255).astype(np.uint8))
                     for j in range(4)
                 ]
 
                 full_pred[0:CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
                     res[0], dsize=(CROP_SIZE, CROP_SIZE)
                 )
-                full_pred[CROP_SIZE : 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
+                full_pred[CROP_SIZE: 2 * CROP_SIZE, 0:CROP_SIZE] = cv2.resize(
                     res[1], dsize=(CROP_SIZE, CROP_SIZE)
                 )
-                full_pred[0:CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE] = cv2.resize(
+                full_pred[0:CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE] = cv2.resize(
                     res[2], dsize=(CROP_SIZE, CROP_SIZE)
                 )
                 full_pred[
-                    CROP_SIZE : 2 * CROP_SIZE, CROP_SIZE : 2 * CROP_SIZE
+                    CROP_SIZE: 2 * CROP_SIZE, CROP_SIZE: 2 * CROP_SIZE
                 ] = cv2.resize(res[3], dsize=(CROP_SIZE, CROP_SIZE))
 
                 test_pred.append(full_pred)
                 # save pred to file
-                cv2.imwrite(f"tmp/pred_{i}.png", (full_pred * 255).astype(np.uint8))
+                cv2.imwrite(f"tmp/pred_{i}.png",
+                            (full_pred * 255).astype(np.uint8))
                 # exit()
 
             # test_pred = [model(t).detach().cpu().numpy()

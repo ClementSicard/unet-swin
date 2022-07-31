@@ -116,12 +116,6 @@ def train(
         pbar = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{n_epochs}")
         # training
         model.train()
-        # TODO to remove only works for swin, to actually freeze the encoder
-        try:
-            for param in model.encoder.parameters():
-                param.requires_grad = False
-        except AttributeError:
-            pass
         for (x, y) in pbar:
             optimizer.zero_grad()  # zero out gradients
             y_hat = model(x)  # forward pass
